@@ -13,7 +13,7 @@ import java.util.Vector;
  * 
  * @author B. Wanders
  */
-public interface LevelResult {
+public abstract class LevelResult {
 	/**
 	 * This method retrieves the level of activation for the given substrate
 	 * 
@@ -21,7 +21,7 @@ public interface LevelResult {
 	 * @param time the time index to do a look up for
 	 * @return the level of concentration
 	 */
-	public double getConcentration(String id, double time);
+	public abstract double getConcentration(String id, double time);
 
 	/**
 	 * This method retrieves the level of activation for the given reactant, or null if that reactant has not a value for the given instant
@@ -30,7 +30,7 @@ public interface LevelResult {
 	 * @param time the time index to do a look up for
 	 * @return the level of concentration
 	 */
-	public Double getConcentrationIfAvailable(String id, double time);
+	public abstract Double getConcentrationIfAvailable(String id, double time);
 	
 	/**
 	 * If the concentration is available, return its value. Otherwise,
@@ -39,23 +39,23 @@ public interface LevelResult {
 	 * @param time
 	 * @return
 	 */
-	public double getInterpolatedConcentration(String id, double time);
+	public abstract double getInterpolatedConcentration(String id, double time);
 
 	/**
 	 * Determines the reactant ID's of substrates of which result are known.
 	 * 
 	 * @return a set of IDs
 	 */
-	public Set<String> getReactantIds();
+	public abstract Set<String> getReactantIds();
 
 	/**
 	 * Returns a list of all time indices at which we have a real data point.
 	 * 
 	 * @return the list of data point time indices
 	 */
-	public List<Double> getTimeIndices();
+	public abstract List<Double> getTimeIndices();
 	
-	public boolean isEmpty();
+	public abstract boolean isEmpty();
 	
 	/**
 	 * Returns a new LevelResult where only the series whose names are in
@@ -63,5 +63,15 @@ public interface LevelResult {
 	 * @param acceptedNames
 	 * @return
 	 */
-	public LevelResult filter(Vector<String> acceptedNames);
+	public abstract LevelResult filter(Vector<String> acceptedNames);
+	
+	/**
+	 * Returns a new LevelResult containing only the series from this
+	 * LevelResult that are also present in "with".
+	 * The values of those series will be the difference between the
+	 * value in "subtractFrom" and the value in this.
+	 * @param subtractFrom
+	 * @return
+	 */
+	public abstract LevelResult difference(LevelResult subtractFrom);
 }

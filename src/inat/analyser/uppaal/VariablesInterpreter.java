@@ -113,7 +113,7 @@ public class VariablesInterpreter implements ResultInterpreter<LevelResult> {
 				}
 			}
 
-			return new SimpleLevelResult(levels);
+			return new SimpleLevelResult(m.getProperties().get(Model.Properties.NUMBER_OF_LEVELS).as(Integer.class), levels);
 		} catch (IOException e) {
 			// This should never happen (assert and throw)
 			assert false : "Assumption failed: IOException was thrown while reading from a String.";

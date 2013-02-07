@@ -774,7 +774,7 @@ public class UppaalModelAnalyserFasterSymbolicConcretized implements ModelAnalys
 			endTime = System.currentTimeMillis();
 			System.err.println("\tParsing the result produced by UPPAAL took " + RunAction.timeDifferenceFormat(startTime, endTime));
 			
-			return new SimpleLevelResult(levels);
+			return new SimpleLevelResult(m.getProperties().get(Model.Properties.NUMBER_OF_LEVELS).as(Integer.class), levels);
 		}
 	}
 	

@@ -400,88 +400,100 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 		g.drawLine(bounds.x + leftBorder, bounds.height + bounds.y, bounds.x + bounds.width - rightBorder, bounds.height + bounds.y);
 		g.drawLine(bounds.x + leftBorder, bounds.height + bounds.y, bounds.x + leftBorder, bounds.y - 10 * SCALA);
 		
-		
-		int xTick = bounds.x + leftBorder,
-		yTick = bounds.y + bounds.height;
-		double minX = scale.getMinX(),
-			   maxX = scale.getMaxX(),
-			   scaleX = scale.getXScale();
-		int interval = (int)(maxX - minX + 1);
-		int increase = 1;
-		//awful heuristic in order to get some ticks 
-		while (interval > 0) {
-			interval = interval / 10;
-			increase = increase * 10;
-		}
-		while ((maxX - minX + 1) / increase < 8) {
-			increase = increase / 10;
-		}
-		if (increase < 1) increase = 1;
-		//questa condizione dice: se le due etichette più lunghe si sovrappongono perché sono troppo vicine..
-		while (increase * scaleX < 5 * SCALA + fm.stringWidth(new Integer((int)maxX).toString())) {
-		//if ((maxX - minX + 1) / increase > 20) { //questa invece si limitava a vedere se venivano troppe (in assoluto) tick: ma non sappiamo quanto è largo il grafico!
-			increase = increase * 2;
-		}
-		int xStartString = bounds.x + bounds.width - rightBorder;
-		if (xSeriesName != null) {
-			xStartString -= fm.stringWidth(xSeriesName) - 5 * SCALA;
-		}
-		for (int i=increase; i<maxX && (xTick + increase * scaleX + fm.stringWidth(new Integer(i).toString())) < xStartString; i+=increase) {
-			xTick = (int) (bounds.x + leftBorder + scaleX * (i - minX));
-			if (xTick < bounds.x + leftBorder) continue;
-			if (xTick > bounds.x + bounds.width) break;
-			g.drawLine(xTick, yTick - 5 * SCALA, xTick, yTick + 5 * SCALA);
-			String label = new Integer(i).toString();
-			g.drawString(label, xTick - fm.stringWidth(label)/2, yTick + 3 * SCALA + fm.getHeight());
-		}
-		
-		xTick = bounds.x + leftBorder;
-		yTick = bounds.y + bounds.height;
-		double minY = scale.getMinY(),
-			   maxY = scale.getMaxY(),
-			   scaleY = scale.getYScale();
-		interval = (int)(maxY - minY + 1);
-		increase = 1;
-		while (interval > 0) {
-			interval = interval / 10;
-			increase = increase * 10;
-		}
-		while ((maxY - minY + 1) / increase < 8) {
-			increase = increase / 10;
-		}
-		if (increase < 1) increase = 1;
-		while (increase * scaleY < fm.getHeight()) {
-			increase = increase * 2;
-		}
-		for (int i=increase; i < maxY; i+=increase) {
-			yTick = (int)(bounds.y + bounds.height - scaleY * (i - minY));
-			if (yTick > bounds.y + bounds.height) continue;
-			if (yTick < bounds.y) break;
-			g.drawLine(xTick - 5 * SCALA, yTick, xTick + 5 * SCALA, yTick);
-			String label = new Integer(i).toString();
-			g.drawString(label, xTick - fm.stringWidth(label) - 5 * SCALA, yTick - 3 * SCALA + fm.getHeight()/2);
-		}
-		
-
-		if  (showThinAxes) {
-			g.setStroke(oldStroke);
-		}
-		
-		if (xSeriesName != null) {
-			g.drawString(xSeriesName, xStartString, bounds.y + bounds.height + 3 * SCALA + fm.getHeight());
-		}
-		
-		if (yLabel != null) {
-			String label = yLabel;
-			AffineTransform at = new AffineTransform(),
-							at2 = new AffineTransform();
-			at.setToTranslation(bounds.x - 7 * SCALA, bounds.y + bounds.height / 2.0 + fm.stringWidth(label) / 2.0);
-			at2.setToRotation(-Math.PI / 2.0);
-			at.concatenate(at2);
-			g.setTransform(at);
-			//g.drawString(label, bounds.x + leftBorder - fm.stringWidth(label) - 6 * SCALA, bounds.y - 5 * SCALA + fm.getHeight()/2);
-			g.drawString(label, 0, 0);
-			g.setTransform(new AffineTransform());
+		if (fm.getHeight() < bounds.height) { //If we can't fit the text, we don't try to put it anywhere
+			int xTick = bounds.x + leftBorder,
+			yTick = bounds.y + bounds.height;
+			double minX = scale.getMinX(),
+				   maxX = scale.getMaxX(),
+				   scaleX = scale.getXScale();
+			int interval = (int)(maxX - minX + 1);
+			int increase = 1;
+			//awful heuristic in order to get some ticks 
+			while (interval > 0) {
+				interval = interval / 10;
+				increase = increase * 10;
+			}
+			while ((maxX - minX + 1) / increase < 8) {
+				increase = increase / 10;
+			}
+			if (increase < 1) increase = 1;
+			//questa condizione dice: se le due etichette piï¿½ lunghe si sovrappongono perchï¿½ sono troppo vicine..
+			while (increase * scaleX < 5 * SCALA + fm.stringWidth(new Integer((int)maxX).toString())) {
+			//if ((maxX - minX + 1) / increase > 20) { //questa invece si limitava a vedere se venivano troppe (in assoluto) tick: ma non sappiamo quanto ï¿½ largo il grafico!
+				increase = increase * 2;
+			}
+			int xStartString = bounds.x + bounds.width - rightBorder;
+			if (xSeriesName != null) {
+				xStartString -= fm.stringWidth(xSeriesName) - 5 * SCALA;
+			}
+			for (int i=increase; i<maxX && (xTick + increase * scaleX + fm.stringWidth(new Integer(i).toString())) < xStartString; i+=increase) {
+				xTick = (int) (bounds.x + leftBorder + scaleX * (i - minX));
+				if (xTick < bounds.x + leftBorder) continue;
+				if (xTick > bounds.x + bounds.width) break;
+				g.drawLine(xTick, yTick - 5 * SCALA, xTick, yTick + 5 * SCALA);
+				String label = new Integer(i).toString();
+				g.drawString(label, xTick - fm.stringWidth(label)/2, yTick + 3 * SCALA + fm.getHeight());
+			}
+			
+			xTick = bounds.x + leftBorder;
+			yTick = bounds.y + bounds.height;
+			double minY = scale.getMinY(),
+				   maxY = scale.getMaxY(),
+				   scaleY = scale.getYScale();
+			interval = (int)(maxY - minY + 1);
+			increase = 1;
+			while (interval > 0) {
+				interval = interval / 10;
+				increase = increase * 10;
+			}
+			while ((maxY - minY + 1) / increase < 8) {
+				increase = increase / 10;
+			}
+			if (increase < 1) increase = 1;
+			while (increase * scaleY < fm.getHeight()) {
+				increase = increase * 2;
+			}
+			for (int i=increase; i < maxY; i+=increase) {
+				yTick = (int)(bounds.y + bounds.height - scaleY * (i - minY));
+				if (yTick > bounds.y + bounds.height) continue;
+				if (yTick < bounds.y) break;
+				g.drawLine(xTick - 5 * SCALA, yTick, xTick + 5 * SCALA, yTick);
+				String label = new Integer(i).toString();
+				g.drawString(label, xTick - fm.stringWidth(label) - 5 * SCALA, yTick - 3 * SCALA + fm.getHeight()/2);
+			}
+			if (increase > minY) {
+				for (int i=increase; i > minY; i-=increase) {
+					yTick = (int)(bounds.y + bounds.height - scaleY * (i - minY));
+					if (yTick > bounds.y + bounds.height) continue;
+					if (yTick < bounds.y) break;
+					g.drawLine(xTick - 5 * SCALA, yTick, xTick + 5 * SCALA, yTick);
+					String label = new Integer(i).toString();
+					g.drawString(label, xTick - fm.stringWidth(label) - 5 * SCALA, yTick - 3 * SCALA + fm.getHeight()/2);
+				}
+			}
+			
+			
+	
+			if  (showThinAxes) {
+				g.setStroke(oldStroke);
+			}
+			
+			if (xSeriesName != null) {
+				g.drawString(xSeriesName, xStartString, bounds.y + bounds.height + 3 * SCALA + fm.getHeight());
+			}
+			
+			if (yLabel != null) {
+				String label = yLabel;
+				AffineTransform at = new AffineTransform(),
+								at2 = new AffineTransform();
+				at.setToTranslation(bounds.x - 7 * SCALA, bounds.y + bounds.height / 2.0 + fm.stringWidth(label) / 2.0);
+				at2.setToRotation(-Math.PI / 2.0);
+				at.concatenate(at2);
+				g.setTransform(at);
+				//g.drawString(label, bounds.x + leftBorder - fm.stringWidth(label) - 6 * SCALA, bounds.y - 5 * SCALA + fm.getHeight()/2);
+				g.drawString(label, 0, 0);
+				g.setTransform(new AffineTransform());
+			}
 		}
 		
 	}
@@ -511,9 +523,9 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 			increase = increase / 10;
 		}
 		if (increase < 1) increase = 1;
-		//questa condizione dice: se le due etichette più lunghe si sovrappongono perché sono troppo vicine..
+		//questa condizione dice: se le due etichette piï¿½ lunghe si sovrappongono perchï¿½ sono troppo vicine..
 		while (increase * scaleX < 5 * SCALA + fm.stringWidth(new Integer((int)maxX).toString())) {
-		//if ((maxX - minX + 1) / increase > 20) { //questa invece si limitava a vedere se venivano troppe (in assoluto) tick: ma non sappiamo quanto è largo il grafico!
+		//if ((maxX - minX + 1) / increase > 20) { //questa invece si limitava a vedere se venivano troppe (in assoluto) tick: ma non sappiamo quanto ï¿½ largo il grafico!
 			increase = increase * 2;
 		}
 		int xStartString = bounds.x + bounds.width;
@@ -943,7 +955,7 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 		int nColonne = tritatutto.countTokens();
 		String[] graphNames = new String[nColonne - 1];
 		Vector<Vector<P>> grafici = new Vector<Vector<P>>(graphNames.length);
-		xSeriesName = tritatutto.nextToken().replace('\"', ' '); //il primo è la X (tempo)
+		xSeriesName = tritatutto.nextToken().replace('\"', ' '); //il primo ï¿½ la X (tempo)
 		for (int i=0;i<graphNames.length;i++) {
 			graphNames[i] = tritatutto.nextToken();
 			graphNames[i] = graphNames[i].replace('\"',' ');
@@ -1100,6 +1112,12 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 		for (GraphScaleListener gl : scaleListeners) {
 			gl.scaleChanged(scale);
 		}
+	}
+	
+
+	//Return the scale
+	public Scale getScale() {
+		return this.scale;
 	}
 	
 	/**

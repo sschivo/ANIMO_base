@@ -2,6 +2,8 @@ package inat.cytoscape;
 
 import fitting.ParameterFitter;
 import inat.InatBackend;
+import inat.cytoscape.INATPropertyChangeListener.ColorsListener;
+import inat.cytoscape.INATPropertyChangeListener.ShapesListener;
 import inat.exceptions.InatException;
 import inat.graph.FileUtils;
 import inat.util.XmlConfiguration;
@@ -14,7 +16,6 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.beans.PropertyChangeListener;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.PrintStream;
@@ -46,6 +47,7 @@ import cytoscape.data.attr.MultiHashMapListener;
 import cytoscape.plugin.CytoscapePlugin;
 import cytoscape.view.CytoscapeDesktop;
 import cytoscape.view.cytopanels.CytoPanel;
+import cytoscape.visual.VisualMappingManager;
 
 /**
  * The ANIMO Cytoscape plugin main class.
@@ -57,6 +59,9 @@ public class InatPlugin extends CytoscapePlugin {
 	private static final String SECONDS_PER_POINT = "seconds per point";
 	private ShapesLegend legendShapes;
 	private ColorsLegend legendColors;
+	public static final String TAB_NAME = "ANIMO";
+	private ColorsListener colorsListener = null;
+	private ShapesListener shapesListener = null;
 
 	/**
 	 * Mandatory constructor.
@@ -69,13 +74,33 @@ public class InatPlugin extends CytoscapePlugin {
 			System.setProperty("java.security.policy", CytoscapeInit.getConfigFile("ANIMO-security.policy").getAbsolutePath());
 
 			CytoPanel p = Cytoscape.getDesktop().getCytoPanel(SwingConstants.WEST);
-			p.add("ANIMO", this.setupPanel(this));
+			p.add(TAB_NAME, this.setupPanel(this));
 			
-			PropertyChangeListener pcl = new INATPropertyChangeListener(legendColors, legendShapes);
+			INATPropertyChangeListener pcl = new INATPropertyChangeListener(legendColors, legendShapes);
 			Cytoscape.getPropertyChangeSupport().addPropertyChangeListener(Cytoscape.NETWORK_CREATED, pcl); //Add all visual mappings
 			Cytoscape.getPropertyChangeSupport().addPropertyChangeListener(Cytoscape.NETWORK_LOADED, pcl); //Make arrows "smooth"
 			Cytoscape.getPropertyChangeSupport().addPropertyChangeListener(CytoscapeDesktop.NETWORK_VIEW_CREATED, pcl); //Add right-click menus
 			Cytoscape.getPropertyChangeSupport().addPropertyChangeListener(Cytoscape.NETWORK_MODIFIED, pcl); //Add/remove nodes
+
+			colorsListener = pcl.getColorsListener();
+			shapesListener = pcl.getShapesListener();
+
+			final VisualMappingManager vizMap = Cytoscape.getVisualMappingManager();
+			ChangeListener vizMapChangeListener = new ChangeListener() {
+				@Override
+				public void stateChanged(ChangeEvent e) {
+					//String nome = "(boh)";
+					if (Cytoscape.getCurrentNetworkView() != null) {
+						//nome = Cytoscape.getCurrentNetworkView().getIdentifier();
+						vizMap.removeChangeListener(colorsListener);
+						vizMap.addChangeListener(colorsListener);
+						vizMap.removeChangeListener(shapesListener);
+						vizMap.addChangeListener(shapesListener);
+					}
+					//System.err.println("La rete " + nome + " ha cambiato stile in " + vizMap.getVisualStyle());
+				}
+			};
+			vizMap.addChangeListener(vizMapChangeListener);
 			
 		} catch (InatException e) {
 			// show error panel
@@ -85,7 +110,7 @@ public class InatPlugin extends CytoscapePlugin {
 			message.setEditable(false);
 			JScrollPane viewport = new JScrollPane(message);
 			errorPanel.add(viewport, BorderLayout.CENTER);
-			p.add("ANIMO", errorPanel);
+			p.add(TAB_NAME, errorPanel);
 		}
 	}
 	
@@ -97,7 +122,7 @@ public class InatPlugin extends CytoscapePlugin {
 	 * @return
 	 */
 	private JPanel setupPanel(InatPlugin plugin) {
-		XmlConfiguration configuration = InatBackend.get().configuration();
+		final XmlConfiguration configuration = InatBackend.get().configuration();
 		String areWeTheDeveloperStr = configuration.get(XmlConfiguration.DEVELOPER_KEY);
 		boolean areWeTheDeveloper = false;
 		if (areWeTheDeveloperStr != null) {

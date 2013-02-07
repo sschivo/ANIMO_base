@@ -219,8 +219,8 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 	 * @return The SimpleLevelResult showing as series the activity levels of all reactants
 	 * present in the model during the simulation period
 	 */
-	public LevelResult analyze(final Model m, final int timeTo) throws AnalysisException {
-		LevelResult result = null;
+	public SimpleLevelResult analyze(final Model m, final int timeTo) throws AnalysisException {
+		SimpleLevelResult result = null;
 		try {
 			final String uppaalModel = new VariablesModelSMC().transform(m);
 			final String uppaalQuery; //"E<> (globalTime > " + timeTo + ")";
@@ -279,7 +279,7 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 			}
 			System.err.print("\tUPPAAL analysis of " + nomeFileModello);
 			final Process proc = rt.exec(cmd);
-			final Vector<LevelResult> resultVector = new Vector<LevelResult>(1); //this has no other reason than to hack around the fact that an internal class needs to have all variables it uses declared as final
+			final Vector<SimpleLevelResult> resultVector = new Vector<SimpleLevelResult>(1); //this has no other reason than to hack around the fact that an internal class needs to have all variables it uses declared as final
 			final Vector<Exception> errors = new Vector<Exception>(); //same reason as above
 			new Thread() {
 				@Override
@@ -413,6 +413,7 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 		 * @return The parsed SMCResult containing the boolean/numerical query answer
 		 * @throws Exception
 		 */
+		@SuppressWarnings("resource")
 		public SMCResult analyseSMC(Model m, InputStream smcOutput) throws Exception {
 			BufferedReader br = new BufferedReader(new InputStreamReader(smcOutput));
 			
@@ -545,7 +546,7 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 		 * showing the activity levels of that reactant for each time point of the trace.
 		 * @throws Exception
 		 */
-		public LevelResult analyse(Model m, InputStream output, int timeTo) throws Exception {
+		public SimpleLevelResult analyse(Model m, InputStream output, int timeTo) throws Exception {
 			long startTime = System.currentTimeMillis();
 			Map<String, SortedMap<Double, Double>> levels = new HashMap<String, SortedMap<Double, Double>>();
 			
@@ -631,7 +632,7 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 			endTime = System.currentTimeMillis();
 			System.err.println("\tParsing the result produced by UPPAAL took " + RunAction.timeDifferenceFormat(startTime, endTime));
 			
-			return new SimpleLevelResult(levels);
+			return new SimpleLevelResult(maxNumberOfLevels, levels);
 		}
 	}
 }

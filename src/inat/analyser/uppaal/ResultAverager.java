@@ -105,6 +105,7 @@ public class ResultAverager {
 		if (results.isEmpty()) throw new Exception("Empty result set");
 		Map<String, SortedMap<Double, Double>> result = new HashMap<String, SortedMap<Double, Double>>();
 		Set<String> reactantIds = results.firstElement().getReactantIds();
+		int maxNLevels = -1;
 		
 		for (String k : reactantIds) {
 			result.put(k, new TreeMap<Double, Double>());
@@ -115,6 +116,9 @@ public class ResultAverager {
 		int avgSize = 0;
 		for (SimpleLevelResult l : results) {
 			avgSize += l.getTimeIndices().size();
+			if (maxNLevels < l.getNumberOfLevels()) {
+				maxNLevels = l.getNumberOfLevels();
+			}
 		}
 		avgSize = (int)Math.round(1.0 * avgSize / results.size());
 		if (avgSize < 200) avgSize = 200;
@@ -156,7 +160,7 @@ public class ResultAverager {
 		}
 		
 		
-		return new SimpleLevelResult(result);
+		return new SimpleLevelResult(maxNLevels, result);
 	}
 	/*public SimpleLevelResult average(Vector<SimpleLevelResult> results) throws Exception {
 		if (results.isEmpty()) throw new Exception("Empty result set");
@@ -214,6 +218,15 @@ public class ResultAverager {
 			}
 		}
 		
+
+		int maxNLevels = -1;
+		
+		for (SimpleLevelResult l : results) {
+			if (l.getNumberOfLevels() > maxNLevels) {
+				maxNLevels = l.getNumberOfLevels();
+			}
+		}
+		
 		/*double finalTime = results.firstElement().getTimeIndices().get(results.firstElement().getTimeIndices().size()-1);
 		int avgSize = 0;
 		for (SimpleLevelResult l : results) {
@@ -236,6 +249,6 @@ public class ResultAverager {
 			monitor.setPercentCompleted((int)((double)i / finalTime * 100));
 		}*/
 		
-		return new SimpleLevelResult(result);
+		return new SimpleLevelResult(maxNLevels, result);
 	}
 }

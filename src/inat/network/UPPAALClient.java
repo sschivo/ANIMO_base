@@ -1,7 +1,7 @@
 package inat.network;
 
-import inat.analyser.LevelResult;
 import inat.analyser.SMCResult;
+import inat.analyser.uppaal.SimpleLevelResult;
 import inat.model.Model;
 
 import java.rmi.Naming;
@@ -18,7 +18,7 @@ public class UPPAALClient {
 		server = (iUPPAALServer) Naming.lookup("rmi://" + serverHost + ":" + serverPort + "/UPPAALServer");
 	}
 	
-	public LevelResult analyze(Model m, int timeTo, int nSimulationRuns, boolean computeAvgStdDev, boolean overlayPlot) throws Exception {
+	public SimpleLevelResult analyze(Model m, int timeTo, int nSimulationRuns, boolean computeAvgStdDev, boolean overlayPlot) throws Exception {
 		return server.analyze(m, timeTo, nSimulationRuns, computeAvgStdDev, overlayPlot);
 	}
 	

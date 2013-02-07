@@ -8,12 +8,13 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.Vector;
-import java.util.Map.Entry;
 
 /**
  * A very simple data container for the concentration/time data.
@@ -21,17 +22,33 @@ import java.util.Map.Entry;
  * @author Brend Wanders
  * 
  */
-public class SimpleLevelResult implements LevelResult, Serializable {
+public class SimpleLevelResult extends LevelResult implements Serializable {
 	private static final long serialVersionUID = 5440819034905472745L;
 	Map<String, SortedMap<Double, Double>> levels;
+	private int numberOfLevels;
 
 	/**
 	 * @param levels the levels to enter
 	 */
-	public SimpleLevelResult(Map<String, SortedMap<Double, Double>> levels) {
+	public SimpleLevelResult(int numberOfLevels, Map<String, SortedMap<Double, Double>> levels) {
+		setNumberOfLevels(numberOfLevels);
 		this.levels = levels;
 	}
+	
+	public SimpleLevelResult() {
+		
+	}
 
+
+	public int getNumberOfLevels() {
+		return numberOfLevels;
+	}
+
+	public void setNumberOfLevels(int numberOfLevels) {
+		this.numberOfLevels = numberOfLevels;
+	}
+	
+	
 	@Override
 	public double getConcentration(String id, double time) {
 		assert this.levels.containsKey(id) : "Can not retrieve level for unknown identifier.";
@@ -129,7 +146,40 @@ public class SimpleLevelResult implements LevelResult, Serializable {
 			SortedMap<Double, Double> m = levels.get(s);
 			lev.put(s, m);
 		}
-		SimpleLevelResult res = new SimpleLevelResult(lev);
+		SimpleLevelResult res = new SimpleLevelResult(this.getNumberOfLevels(), lev);
+		return res;
+	}
+
+
+	@Override
+	public LevelResult difference(LevelResult subtractFrom_) {
+		Map<String, SortedMap<Double, Double>> lev = new HashMap<String, SortedMap<Double, Double>>();
+		SimpleLevelResult subtractFrom = (SimpleLevelResult)subtractFrom_;
+		//System.err.println("Differenzio tra " + subtractFrom + " (" + subtractFrom.getNumberOfLevels() + " livelli) e " + this + " (" + this.getNumberOfLevels() + " livelli)");
+		int maxNLevels = Math.max(subtractFrom.getNumberOfLevels(), this.getNumberOfLevels());
+		List<Double> idxSub = subtractFrom.getTimeIndices(),
+					 idxThis = this.getTimeIndices();
+		double minDuration = Math.min(idxSub.get(idxSub.size() - 1), idxThis.get(idxThis.size() - 1));
+		for (String s : levels.keySet()) {
+			if (!subtractFrom.levels.containsKey(s)) continue;
+			SortedMap<Double, Double> m1 = subtractFrom.levels.get(s),
+									  m2 = this.levels.get(s),
+									  mRes = new TreeMap<Double, Double>();
+			for (Double k : m1.keySet()) { //Take first one an then the other as a reference for the X values. Please note: this means that the resulting series will have a number of points that is about as big as the sum of the two input series, so it would not be ideal to continue to compute differences of differences of differences...
+				if (k <= minDuration) {
+					mRes.put(k, maxNLevels * (subtractFrom.getInterpolatedConcentration(s, k) / subtractFrom.getNumberOfLevels() - this.getInterpolatedConcentration(s, k) / this.getNumberOfLevels()));
+				}
+			}
+			for (Double k : m2.keySet()) {
+				if (k <= minDuration) {
+					mRes.put(k, maxNLevels * (subtractFrom.getInterpolatedConcentration(s, k) / subtractFrom.getNumberOfLevels() - this.getInterpolatedConcentration(s, k) / this.getNumberOfLevels()));
+				}
+			}
+			//System.err.println("Ho aggiunto " + mRes.size() + " punti per " + s);
+			lev.put(s, mRes);
+		}
+		SimpleLevelResult res = new SimpleLevelResult(maxNLevels, lev);
+		//System.err.println("E finalmente produco il risultato con " + maxNLevels + " livelli");
 		return res;
 	}
 

@@ -1,8 +1,8 @@
 package inat.cytoscape;
 
-import inat.analyser.LevelResult;
 import inat.analyser.SMCResult;
 import inat.analyser.uppaal.ResultAverager;
+import inat.analyser.uppaal.SimpleLevelResult;
 import inat.analyser.uppaal.UppaalModelAnalyserSMC;
 import inat.exceptions.InatException;
 import inat.model.Model;
@@ -317,7 +317,7 @@ public class RunAction extends CytoscapeAction {
 			//ModelAnalyser<LevelResult> analyzer = new UppaalModelAnalyser(new VariablesInterpreter(), new VariablesModel());
 
 			// analyse model
-			final LevelResult result;
+			final SimpleLevelResult result;
 			
 			if (remoteUppaal.isSelected()) {
 				UPPAALClient client = new UPPAALClient(serverName.getText(), Integer.parseInt(serverPort.getText()));

@@ -613,7 +613,7 @@ public class UppaalModelAnalyserFaster implements ModelAnalyser<LevelResult> {
 				}
 			}
 			
-			return new SimpleLevelResult(levels);
+			return new SimpleLevelResult(m.getProperties().get(Model.Properties.NUMBER_OF_LEVELS).as(Integer.class), levels);
 		}
 	}
 	

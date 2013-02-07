@@ -1,7 +1,7 @@
 package inat.cytoscape;
 
-import inat.analyser.LevelResult;
 import inat.analyser.uppaal.ResultAverager;
+import inat.analyser.uppaal.SimpleLevelResult;
 import inat.graph.FileUtils;
 import inat.graph.Graph;
 import inat.graph.GraphScaleListener;
@@ -12,6 +12,7 @@ import inat.util.Quadruple;
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -39,6 +40,7 @@ import cytoscape.view.cytopanels.CytoPanel;
 import cytoscape.view.cytopanels.CytoPanelImp;
 import cytoscape.view.cytopanels.CytoPanelListener;
 import cytoscape.view.cytopanels.CytoPanelState;
+import cytoscape.visual.VisualMappingManager;
 
 /**
  * The Inat result panel.
@@ -49,12 +51,23 @@ public class InatResultPanel extends JPanel implements ChangeListener, GraphScal
 
 	private static final long serialVersionUID = -163756255393221954L;
 	private final Model model; //The model from which the results were obtained
-	private final LevelResult result; //Contains the results to be shown in this panel
+	private final SimpleLevelResult result; //Contains the results to be shown in this panel
+	private int myIndex; //The index at which the panel is placed when added to the CytoPanel
 	private JSlider slider; //The slider to allow the user to choose a moment in the simulation time, which will be reflected on the network window as node colors, indicating the corresponding reactant activity level.
 	private double scale; //The time scale
+	private static final String START_DIFFERENCE = "Difference with...", //The three strings here are for one button. Everybody normally shows START_DIFFERENCE. When the user presses on the button (differenceWith takes the value of this for the InatResultPanel where the button was pressed),
+								END_DIFFERENCE = "Difference with this", //every other panel shows the END_DIFFERENCE. If the user presses a button with END_DIFFERENCE, a new InatResultPanel is created with the difference between the data in differenceWith and the panel where END_DIFFERENCE was pressed. Then every panel goes back to START_DIFFERENCE.
+								CANCEL_DIFFERENCE = "Cancel difference"; //CANCEL_DIFFERENCE is shown as text of the button only on the panel whare START_DIFFERENCE was pressed. If CANCEL_DIFFERENCE is pressed, then no difference is computed and every panel simply goes back to START_DIFFERENCE
 	private String title; //The title to show to the user
 	private Graph g;
 
+	
+	private JButton differenceButton = null;
+	private static InatResultPanel differenceWith = null;
+	private static Vector<InatResultPanel> allExistingPanels = new Vector<InatResultPanel>();
+	private String vizMapName = null;
+	private boolean isDifference = false;
+	
 	
 	/**
 	 * Load the simulation data from a file instead than getting it from a simulation we have just made
@@ -67,11 +80,11 @@ public class InatResultPanel extends JPanel implements ChangeListener, GraphScal
 		this(loadSimulationData(simulationDataFile));
 	}
 	
-	public InatResultPanel(Quadruple<Model, LevelResult, Double, String> simulationData) {
+	public InatResultPanel(Quadruple<Model, SimpleLevelResult, Double, String> simulationData) {
 		this(simulationData.first, simulationData.second, simulationData.third, simulationData.fourth);
 	}
 	
-	public InatResultPanel(Model model, LevelResult result, double scale) {
+	public InatResultPanel(Model model, SimpleLevelResult result, double scale) {
 		this(model, result, scale, "ANIMO Results");
 	}
 	
@@ -81,8 +94,9 @@ public class InatResultPanel extends JPanel implements ChangeListener, GraphScal
 	 * @param model the model this panel uses
 	 * @param result the results object this panel uses
 	 */
-	public InatResultPanel(Model model, LevelResult result, double scale, String title) {
+	public InatResultPanel(Model model, SimpleLevelResult result, double scale, String title) {
 		super(new BorderLayout(), true);
+		allExistingPanels.add(this);
 		this.model = model;
 		this.result = result;
 		this.scale = scale;
@@ -135,9 +149,9 @@ public class InatResultPanel extends JPanel implements ChangeListener, GraphScal
 				}
 			}
 			if ((!r.toLowerCase().contains(ResultAverager.STD_DEV.toLowerCase()) && !r.toLowerCase().contains(ResultAverager.OVERLAY_NAME.toLowerCase()) 
-						&& model.getReactant(r).get(Model.Properties.PLOTTED).as(Boolean.class))
+						&& model.getReactant(r) != null && model.getReactant(r).get(Model.Properties.PLOTTED).as(Boolean.class))
 				|| ((r.toLowerCase().contains(ResultAverager.STD_DEV.toLowerCase()) || r.toLowerCase().contains(ResultAverager.OVERLAY_NAME.toLowerCase())) 
-						&& model.getReactant(stdDevReactantName).get(Model.Properties.PLOTTED).as(Boolean.class))) {
+						&& model.getReactant(r) != null && model.getReactant(stdDevReactantName).get(Model.Properties.PLOTTED).as(Boolean.class))) {
 				
 				filteredSeriesNames.add(r);
 			}
@@ -146,7 +160,7 @@ public class InatResultPanel extends JPanel implements ChangeListener, GraphScal
 		g.parseLevelResult(result.filter(filteredSeriesNames), seriesNameMapping, scale); //Add all series to the graph, using the mapping we built here to "translate" the names into the user-defined ones.
 		g.setXSeriesName("Time (min)");
 		g.setYLabel("Protein activity (a. u.)");
-
+		
 		if (!model.getProperties().get(Model.Properties.NUMBER_OF_LEVELS).isNull()) { //if we find a maximum value for activity levels, we declare it to the graph, so that other added graphs (such as experimental data) will be automatically rescaled to match us
 			int nLevels = model.getProperties().get(Model.Properties.NUMBER_OF_LEVELS).as(Integer.class);
 			g.declareMaxYValue(nLevels);
@@ -235,17 +249,17 @@ public class InatResultPanel extends JPanel implements ChangeListener, GraphScal
 		}
 	}
 	
-	public static Quadruple<Model, LevelResult, Double, String> loadSimulationData(File inputFile) {
+	public static Quadruple<Model, SimpleLevelResult, Double, String> loadSimulationData(File inputFile) {
 		try {
 			FileInputStream fIn = new FileInputStream(inputFile);
 			ObjectInputStream in = new ObjectInputStream(fIn);
 			Model model = (Model)in.readObject();
-			LevelResult result = (LevelResult)in.readObject();
+			SimpleLevelResult result = (SimpleLevelResult)in.readObject();
 			Double scale = in.readDouble();
 			String title = in.readObject().toString();
 			in.close();
 			fIn.close();
-			return new Quadruple<Model, LevelResult, Double, String>(model, result, scale, title);
+			return new Quadruple<Model, SimpleLevelResult, Double, String>(model, result, scale, title);
 		} catch (Exception ex) {
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			PrintStream ps = new PrintStream(baos);
@@ -272,6 +286,7 @@ public class InatResultPanel extends JPanel implements ChangeListener, GraphScal
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				cytoPanel.remove(container);
+				allExistingPanels.remove(this);
 			}
 		});
 		
@@ -303,8 +318,19 @@ public class InatResultPanel extends JPanel implements ChangeListener, GraphScal
 			}
 		});
 		
+		differenceButton = new JButton(START_DIFFERENCE);
+		differenceButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				differenceButtonPressed(differenceButton.getText());
+			}
+		});
+		
 		buttons.add(changeTitle);
-		buttons.add(save);
+		buttons.add(differenceButton);
+		if (!isDifference) { //The differences are not saved (for the moment)
+			buttons.add(save);
+		}
 		buttons.add(close);
 		container.add(buttons, BorderLayout.NORTH);
 		
@@ -314,8 +340,45 @@ public class InatResultPanel extends JPanel implements ChangeListener, GraphScal
 		cytoPanel.addCytoPanelListener(this);
 		
 		cytoPanel.add(this.title, container);
-		cytoPanel.setSelectedIndex(cytoPanel.getCytoPanelComponentCount() - 1);
+		this.myIndex = cytoPanel.getCytoPanelComponentCount() - 1;
+		cytoPanel.setSelectedIndex(this.myIndex);
 		resetDivider();
+	}
+	
+	private void differenceButtonPressed(String caption) {
+		if (caption.equals(START_DIFFERENCE)) {
+			differenceButton.setText(CANCEL_DIFFERENCE);
+			differenceWith = this;
+			for (InatResultPanel others : allExistingPanels) {
+				if (others == this) continue;
+				others.differenceButton.setText(END_DIFFERENCE);
+			}
+		} else if (caption.equals(END_DIFFERENCE)) {
+			if (differenceWith != null) {
+				SimpleLevelResult diff = (SimpleLevelResult)this.result.difference(differenceWith.result);
+				if (diff.isEmpty()) {
+					JOptionPane.showMessageDialog(Cytoscape.getDesktop(), "Error: empty difference. Please contact the developers and send them the current model,\nwith a reference to which simulations were used for the difference.");
+					return;
+				}
+				InatResultPanel newPanel = new InatResultPanel(differenceWith.model, diff, differenceWith.scale, differenceWith.title + " - " + this.title);
+				newPanel.isDifference = true;
+				double maxY = Math.max(this.g.getScale().getMaxY(), differenceWith.g.getScale().getMaxY());
+				Scale scale = newPanel.g.getScale();
+				newPanel.g.setDrawArea((int)scale.getMinX(), (int)scale.getMaxX(), (int)-maxY, (int)maxY); //(int)scale.getMaxY());
+				newPanel.vizMapName = InatPlugin.TAB_NAME + "_Diff";
+				if (fCytoPanel != null) {
+					newPanel.addToPanel(fCytoPanel);
+				}
+				for (InatResultPanel panel : allExistingPanels) {
+					panel.differenceButton.setText(START_DIFFERENCE);
+				}
+			}
+		} else if (caption.equals(CANCEL_DIFFERENCE)) {
+			differenceWith = null;
+			for (InatResultPanel panel : allExistingPanels) {
+				panel.differenceButton.setText(START_DIFFERENCE);
+			}
+		}
 	}
 	
 	private int lastWidth;
@@ -349,12 +412,22 @@ public class InatResultPanel extends JPanel implements ChangeListener, GraphScal
 	}
 
 	@Override
-	public void onComponentSelected(int arg0) {
+	public void onComponentSelected(int idx) {
+		if (idx == myIndex) {
+			VisualMappingManager vizMap = Cytoscape.getVisualMappingManager();
+			if (vizMapName != null) {
+				//CalculatorCatalog visualStyleCatalog = vizMap.getCalculatorCatalog();
+				vizMap.setVisualStyle(vizMapName);
+			} else {
+				vizMap.setVisualStyle("default");
+			}
+			stateChanged(null); //We must do this to make sure that the visual mapping is correctly applied, otherwise Cytoscape will not notice a possibly different scale on the mapping values (e.g. [-1.0, 1.0] instead of [0.0, 1.0])
+		}
 		resetDivider();
 	}
 
 	@Override
 	public void onStateChange(CytoPanelState arg0) {
-		
+		resetDivider();
 	}
 }

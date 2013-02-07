@@ -604,7 +604,7 @@ public class UppaalModelAnalyserFasterSymbolic implements ModelAnalyser<LevelRes
 			endTime = System.currentTimeMillis();
 			System.err.println("\tParsing the result produced by UPPAAL took " + RunAction.timeDifferenceFormat(startTime, endTime));
 			
-			return new SimpleLevelResult(levels);
+			return new SimpleLevelResult(m.getProperties().get(Model.Properties.NUMBER_OF_LEVELS).as(Integer.class), levels);
 		}
 		
 		public LevelResult analyseNotWorking(Model m, InputStream output, int timeTo) throws Exception {
@@ -753,7 +753,7 @@ public class UppaalModelAnalyserFasterSymbolic implements ModelAnalyser<LevelRes
 			endTime = System.currentTimeMillis();
 			System.err.println("\tParsing the result produced by UPPAAL took " + RunAction.timeDifferenceFormat(startTime, endTime));
 			
-			return new SimpleLevelResult(levels);
+			return new SimpleLevelResult(m.getProperties().get(Model.Properties.NUMBER_OF_LEVELS).as(Integer.class), levels);
 		}
 		private void parseLine(int time, String line, Map<String, Double> numberOfLevels, int maxNumberOfLevels, Pattern statePattern, Map<String, SortedMap<Double, Double>> levels) {
 			Matcher stateMatcher = statePattern.matcher(line);

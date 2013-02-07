@@ -54,15 +54,21 @@ public class ShapesLegend extends JPanel {
 		g.setFont(oldFont);
 		
 		Map<String, NodeShape> shapes = shapesMap.getAll();
-		Map<String, Float> widths = widthsMap.getAll(),
-						   heights = heightsMap.getAll();
+		Map<String, Object> widths = widthsMap.getAll(), //The maps SHOULD be to Float, but the smart Cytoscape reads the mapping from file as Double, so we must make sure that we work in both cases.
+							heights = heightsMap.getAll();
 		
 		float nodeSpace = rectangle.height / shapes.size();
 		
 		float maxHeight = -1;
 		int maxStrLength = -1;
 		for (String moleculeType : heights.keySet()) {
-			float h = heights.get(moleculeType);
+			Object o = heights.get(moleculeType);
+			float h = 50.0f; 
+			if (o instanceof Float) {
+				h = (Float)o;
+			} else if (o instanceof Double) {
+				h = new Float((Double)o);
+			}
 			if (h > maxHeight) {
 				maxHeight = h;
 			}
@@ -76,8 +82,20 @@ public class ShapesLegend extends JPanel {
 		
 		for (String moleculeType : shapes.keySet()) {
 			NodeShape shape = shapes.get(moleculeType);
-			float width = widths.get(moleculeType),
-				  height = heights.get(moleculeType);
+			float width = 50.0f,
+				  height = 50.0f;
+			Object o1 = widths.get(moleculeType);
+			if (o1 instanceof Float) {
+				width = (Float)o1;
+			} else if (o1 instanceof Double) {
+				width = new Float((Double)o1);
+			}
+			Object o2 = heights.get(moleculeType);
+			if (o2 instanceof Float) {
+				height = (Float)o2;
+			} else if (o2 instanceof Double) {
+				height = new Float((Double)o2);
+			}
 			float rate = 0.75f * nodeSpace / maxHeight;
 			width *= rate;
 			height *= rate;
