@@ -294,6 +294,7 @@ public class Model implements Serializable {
 			r.let(REACTANT_NAME).be(node.getIdentifier());
 			r.let(REACTANT_ALIAS).be(nodeAttributes.getAttribute(node.getIdentifier(), CANONICAL_NAME));
 			r.let(NUMBER_OF_LEVELS).be(nodeAttributes.getAttribute(node.getIdentifier(), NUMBER_OF_LEVELS));
+			r.let(LEVELS_SCALE_FACTOR).be(nodeAttributes.getAttribute(node.getIdentifier(), LEVELS_SCALE_FACTOR));
 			r.let(GROUP).be(nodeAttributes.getAttribute(node.getIdentifier(), GROUP));
 			r.let(ENABLED).be(nodeAttributes.getAttribute(node.getIdentifier(), ENABLED));
 			r.let(PLOTTED).be(nodeAttributes.getAttribute(node.getIdentifier(), PLOTTED));
@@ -313,14 +314,13 @@ public class Model implements Serializable {
 			Edge edge = edges.next();
 			if (!edgeAttributes.getBooleanAttribute(edge.getIdentifier(), ENABLED)) continue;
 			
-			Double levelsScaleFactor = nodeAttributes.getDoubleAttribute(edge.getSource().getIdentifier(), LEVELS_SCALE_FACTOR) / nodeAttributes.getDoubleAttribute(edge.getTarget().getIdentifier(), LEVELS_SCALE_FACTOR);
+			Double levelsScaleFactor;// = nodeAttributes.getDoubleAttribute(edge.getSource().getIdentifier(), LEVELS_SCALE_FACTOR) / nodeAttributes.getDoubleAttribute(edge.getTarget().getIdentifier(), LEVELS_SCALE_FACTOR);
 									//edgeAttributes.getDoubleAttribute(edge.getIdentifier(), LEVELS_SCALE_FACTOR); //The scale factor due to the nodes' number of levels is now a property of the nodes themselves, not of the reactions (we take care of retrocompatibility by transferring and deleting attributes found in reactions to their nodes instead in the checkParameters method)
 			
 			String reactionId = "reaction" + i;
 			Reaction r = new Reaction(reactionId);
 			edgeNameToId.put(edge.getIdentifier(), reactionId);
 			
-			r.let(LEVELS_SCALE_FACTOR + "_reaction").be(levelsScaleFactor);
 			r.let(ENABLED).be(edgeAttributes.getAttribute(edge.getIdentifier(), ENABLED));
 			r.let(INCREMENT).be(edgeAttributes.getAttribute(edge.getIdentifier(), INCREMENT));
 			r.let(CYTOSCAPE_ID).be(edge.getIdentifier());
@@ -358,7 +358,25 @@ public class Model implements Serializable {
 			scenarioIdx = edgeAttributes.getIntegerAttribute(edge.getIdentifier(), SCENARIO);
 			Scenario scenario;
 			if (scenarioIdx >= 0 && scenarioIdx < scenarios.length) {
-				scenario= scenarios[scenarioIdx];
+				scenario = scenarios[scenarioIdx];
+				switch (scenarioIdx) {
+					case 0:
+						levelsScaleFactor = 1.0 / model.getReactant(reactant).get(NUMBER_OF_LEVELS).as(Integer.class) * model.getReactant(catalyst).get(NUMBER_OF_LEVELS).as(Integer.class);
+						break;
+					case 1:
+						levelsScaleFactor = 1.0 * model.getReactant(catalyst).get(NUMBER_OF_LEVELS).as(Integer.class);
+						break;
+					case 2:
+						String e1, e2;
+						e1 = nodeNameToId.get(edgeAttributes.getStringAttribute(edge.getIdentifier(), Model.Properties.REACTANT_ID + "E1"));
+						e2 = nodeNameToId.get(edgeAttributes.getStringAttribute(edge.getIdentifier(), Model.Properties.REACTANT_ID + "E2"));
+						levelsScaleFactor = 1.0 / model.getReactant(reactant).get(NUMBER_OF_LEVELS).as(Integer.class) * model.getReactant(e1).get(NUMBER_OF_LEVELS).as(Integer.class) * model.getReactant(e2).get(NUMBER_OF_LEVELS).as(Integer.class);
+						//If we wanted, we could also "simplify" the multiplication above by trying to identify the substrate (called "reactant") with one of the two upstream entities ("e1" and "e2"), but the result would be the same
+						break;
+					default:
+						levelsScaleFactor = 1.0;
+						break;
+				}
 			} else {
 				//scenario = scenarios[0];
 				edgeAttributes.setAttribute(edge.getIdentifier(), SCENARIO, 0);
@@ -398,6 +416,7 @@ public class Model implements Serializable {
 			}
 
 			r.let(Model.Properties.SCENARIO).be(scenarioIdx);
+			r.let(LEVELS_SCALE_FACTOR + "_reaction").be(levelsScaleFactor);
 			
 			
 			String[] parameters = scenario.listVariableParameters();
@@ -559,8 +578,8 @@ public class Model implements Serializable {
 		ENABLED = Model.Properties.ENABLED, //Whether the node/edge is enabled. Influences the display of that node/edge thanks to the discrete Visual Mapping defined by AugmentAction
 		PLOTTED = Model.Properties.PLOTTED; //Whether the node is plotted in the graph. Default: yes
 		
-		final int VERY_LARGE_TIME_VALUE = 1073741822;
-
+		final int VERY_LARGE_TIME_VALUE = 1073741822; //This is NOT a random number: it is the maximum number that can currently be input to UPPAAL
+		
 		CyNetwork network = Cytoscape.getCurrentNetwork();
 		CyAttributes networkAttributes = Cytoscape.getNetworkAttributes();
 		CyAttributes nodeAttributes = Cytoscape.getNodeAttributes();
@@ -617,7 +636,8 @@ public class Model implements Serializable {
 		
 		boolean noReactantsPlotted = true;
 		Iterator<Node> nodes = (Iterator<Node>) network.nodesIterator();
-		for (int i = 0; nodes.hasNext(); i++) {
+		for (@SuppressWarnings("unused")
+		int i = 0; nodes.hasNext(); i++) {
 			Node node = nodes.next();
 			boolean enabled = false;
 			if (!nodeAttributes.hasAttribute(node.getIdentifier(), ENABLED)) {
@@ -647,9 +667,9 @@ public class Model implements Serializable {
 				nodeAttributes.setAttribute(node.getIdentifier(), INITIAL_LEVEL, 0);
 			}
 			
-			if (!nodeAttributes.hasAttribute(node.getIdentifier(), LEVELS_SCALE_FACTOR)) {
-				nodeAttributes.setAttribute(node.getIdentifier(), LEVELS_SCALE_FACTOR, 1.0);
-			}
+//			if (!nodeAttributes.hasAttribute(node.getIdentifier(), LEVELS_SCALE_FACTOR)) {
+//				nodeAttributes.setAttribute(node.getIdentifier(), LEVELS_SCALE_FACTOR, 1.0);
+//			}
 		}
 		
 		/*if (noReactantsPlotted && !smcUppaal.isSelected()) {
@@ -661,7 +681,8 @@ public class Model implements Serializable {
 		}
 		
 		Iterator<Edge> edges = (Iterator<Edge>) network.edgesIterator();
-		for (int i = 0; edges.hasNext(); i++) {
+		for (@SuppressWarnings("unused")
+		int i = 0; edges.hasNext(); i++) {
 			Edge edge = edges.next();
 			boolean enabled;
 			if (!edgeAttributes.hasAttribute(edge.getIdentifier(), ENABLED)) {
@@ -753,6 +774,56 @@ public class Model implements Serializable {
 				}
 			}
 			
+			switch (scenarioIdx) {
+				case 0:
+				case 1:
+					if (!nodeAttributes.getBooleanAttribute(edge.getSource().getIdentifier(), Model.Properties.ENABLED)
+						&& nodeAttributes.getBooleanAttribute(edge.getTarget().getIdentifier(), Model.Properties.ENABLED)) {
+						throw new InatException("Please check that reactant \"" + nodeAttributes.getStringAttribute(edge.getSource().getIdentifier(), Model.Properties.CANONICAL_NAME) + "\" is enabled, or reaction \"" + edgeName + "\" cannot stay enabled.");
+					} else if (!nodeAttributes.getBooleanAttribute(edge.getSource().getIdentifier(), Model.Properties.ENABLED)
+							&& !nodeAttributes.getBooleanAttribute(edge.getTarget().getIdentifier(), Model.Properties.ENABLED)) {
+						throw new InatException("Please check that both reactants \"" + nodeAttributes.getStringAttribute(edge.getSource().getIdentifier(), Model.Properties.CANONICAL_NAME) + "\" and \"" + nodeAttributes.getStringAttribute(edge.getTarget().getIdentifier(), Model.Properties.CANONICAL_NAME) + "\" are enabled, or reaction \"" + edgeName + "\" cannot stay enabled.");
+					} else if (nodeAttributes.getBooleanAttribute(edge.getSource().getIdentifier(), Model.Properties.ENABLED)
+							&& !nodeAttributes.getBooleanAttribute(edge.getTarget().getIdentifier(), Model.Properties.ENABLED)) {
+						throw new InatException("Please check that reactant \"" + nodeAttributes.getStringAttribute(edge.getTarget().getIdentifier(), Model.Properties.CANONICAL_NAME) + "\" is enabled, or reaction \"" + edgeName + "\" cannot stay enabled.");
+					} else {
+						//They are both enabled: all is good
+					}
+					break;
+				case 2:
+					if (!nodeAttributes.getBooleanAttribute(edgeAttributes.getStringAttribute(edge.getIdentifier(), Model.Properties.REACTANT_ID + "E1"), Model.Properties.ENABLED)
+						&& nodeAttributes.getBooleanAttribute(edgeAttributes.getStringAttribute(edge.getIdentifier(), Model.Properties.REACTANT_ID + "E2"), Model.Properties.ENABLED)
+						&& nodeAttributes.getBooleanAttribute(edge.getTarget().getIdentifier(), Model.Properties.ENABLED)) {
+						throw new InatException("Please check that reactant \"" + nodeAttributes.getStringAttribute(edgeAttributes.getStringAttribute(edge.getIdentifier(), Model.Properties.REACTANT_ID + "E1"), Model.Properties.CANONICAL_NAME) + "\" is enabled, or reaction \"" + edgeName + "\" cannot stay enabled.");
+					} else if (!nodeAttributes.getBooleanAttribute(edgeAttributes.getStringAttribute(edge.getIdentifier(), Model.Properties.REACTANT_ID + "E1"), Model.Properties.ENABLED)
+							&& !nodeAttributes.getBooleanAttribute(edgeAttributes.getStringAttribute(edge.getIdentifier(), Model.Properties.REACTANT_ID + "E2"), Model.Properties.ENABLED)
+							&& nodeAttributes.getBooleanAttribute(edge.getTarget().getIdentifier(), Model.Properties.ENABLED)) {
+						throw new InatException("Please check that both reactants \"" + nodeAttributes.getStringAttribute(edgeAttributes.getStringAttribute(edge.getIdentifier(), Model.Properties.REACTANT_ID + "E1"), Model.Properties.CANONICAL_NAME) + "\" and \"" + nodeAttributes.getStringAttribute(edgeAttributes.getStringAttribute(edge.getIdentifier(), Model.Properties.REACTANT_ID + "E2"), Model.Properties.CANONICAL_NAME) + "\" are enabled, or reaction \"" + edgeName + "\" cannot stay enabled.");
+					} else if (nodeAttributes.getBooleanAttribute(edgeAttributes.getStringAttribute(edge.getIdentifier(), Model.Properties.REACTANT_ID + "E1"), Model.Properties.ENABLED)
+							&& !nodeAttributes.getBooleanAttribute(edgeAttributes.getStringAttribute(edge.getIdentifier(), Model.Properties.REACTANT_ID + "E2"), Model.Properties.ENABLED)
+							&& nodeAttributes.getBooleanAttribute(edge.getTarget().getIdentifier(), Model.Properties.ENABLED)) {
+						throw new InatException("Please check that reactant \"" + nodeAttributes.getStringAttribute(edgeAttributes.getStringAttribute(edge.getIdentifier(), Model.Properties.REACTANT_ID + "E2"), Model.Properties.CANONICAL_NAME) + "\" is enabled, or reaction \"" + edgeName + "\" cannot stay enabled.");
+					} else if (!nodeAttributes.getBooleanAttribute(edgeAttributes.getStringAttribute(edge.getIdentifier(), Model.Properties.REACTANT_ID + "E1"), Model.Properties.ENABLED)
+						&& nodeAttributes.getBooleanAttribute(edgeAttributes.getStringAttribute(edge.getIdentifier(), Model.Properties.REACTANT_ID + "E2"), Model.Properties.ENABLED)
+						&& !nodeAttributes.getBooleanAttribute(edge.getTarget().getIdentifier(), Model.Properties.ENABLED)) {
+						throw new InatException("Please check that both reactants \"" + nodeAttributes.getStringAttribute(edgeAttributes.getStringAttribute(edge.getIdentifier(), Model.Properties.REACTANT_ID + "E1"), Model.Properties.CANONICAL_NAME) + "\" and \"" + nodeAttributes.getStringAttribute(edge.getTarget().getIdentifier(), Model.Properties.CANONICAL_NAME) + "\" are enabled, or reaction \"" + edgeName + "\" cannot stay enabled.");
+					} else if (!nodeAttributes.getBooleanAttribute(edgeAttributes.getStringAttribute(edge.getIdentifier(), Model.Properties.REACTANT_ID + "E1"), Model.Properties.ENABLED)
+							&& !nodeAttributes.getBooleanAttribute(edgeAttributes.getStringAttribute(edge.getIdentifier(), Model.Properties.REACTANT_ID + "E2"), Model.Properties.ENABLED)
+							&& !nodeAttributes.getBooleanAttribute(edge.getTarget().getIdentifier(), Model.Properties.ENABLED)) {
+						throw new InatException("Please check that reactants \"" + nodeAttributes.getStringAttribute(edgeAttributes.getStringAttribute(edge.getIdentifier(), Model.Properties.REACTANT_ID + "E1"), Model.Properties.CANONICAL_NAME) + "\", \"" + nodeAttributes.getStringAttribute(edgeAttributes.getStringAttribute(edge.getIdentifier(), Model.Properties.REACTANT_ID + "E2"), Model.Properties.CANONICAL_NAME) + "\" and \"" + nodeAttributes.getStringAttribute(edge.getTarget().getIdentifier(), Model.Properties.CANONICAL_NAME) + "\" are enabled, or reaction \"" + edgeName + "\" cannot stay enabled.");
+					} else if (nodeAttributes.getBooleanAttribute(edgeAttributes.getStringAttribute(edge.getIdentifier(), Model.Properties.REACTANT_ID + "E1"), Model.Properties.ENABLED)
+							&& !nodeAttributes.getBooleanAttribute(edgeAttributes.getStringAttribute(edge.getIdentifier(), Model.Properties.REACTANT_ID + "E2"), Model.Properties.ENABLED)
+							&& !nodeAttributes.getBooleanAttribute(edge.getTarget().getIdentifier(), Model.Properties.ENABLED)) {
+						throw new InatException("Please check that both reactants \"" + nodeAttributes.getStringAttribute(edgeAttributes.getStringAttribute(edge.getIdentifier(), Model.Properties.REACTANT_ID + "E2"), Model.Properties.CANONICAL_NAME) + "\" and \"" + nodeAttributes.getStringAttribute(edge.getTarget().getIdentifier(), Model.Properties.CANONICAL_NAME) + "\" are enabled, or reaction \"" + edgeName + "\" cannot stay enabled.");
+					} else {
+						//They are both enabled: all is good
+					}
+					break;
+				default:
+					break;
+			}
+			
+			
 			if (edgeAttributes.hasAttribute(edge.getIdentifier(), LEVELS_SCALE_FACTOR)) { //Some old models have this property set as a property of the reaction instead of a property of the reactants: we collect it all in the upstream reactant, leaving 1.0 as scale for the downstream, and (important!) remove the property from the reaction
 				//Double scale = edgeAttributes.getDoubleAttribute(edge.getIdentifier(), LEVELS_SCALE_FACTOR);
 				//nodeAttributes.setAttribute(edge.getSource().getIdentifier(), LEVELS_SCALE_FACTOR, scale / nodeAttributes.getDoubleAttribute(edge.getSource().getIdentifier(), LEVELS_SCALE_FACTOR));
@@ -760,7 +831,7 @@ public class Model implements Serializable {
 					   scaleDownstream = nodeAttributes.getIntegerAttribute(edge.getTarget().getIdentifier(), NUMBER_OF_LEVELS) / 15.0;
 				//String nomeReazione = nodeAttributes.getStringAttribute(edge.getSource().getIdentifier(), CANONICAL_NAME) + " (" + nodeAttributes.getIntegerAttribute(edge.getSource().getIdentifier(), NUMBER_OF_LEVELS) + ") " + ((edgeAttributes.getIntegerAttribute(edge.getIdentifier(), INCREMENT) > 0) ? " --> " : " --| ") + nodeAttributes.getStringAttribute(edge.getTarget().getIdentifier(), CANONICAL_NAME) + " (" + nodeAttributes.getIntegerAttribute(edge.getTarget().getIdentifier(), NUMBER_OF_LEVELS) + ")";
 				/*if (Math.abs(scaleUpstream / scaleDownstream - scale) > 1e-6) { //If the components were scaled before the reaction was introduced, then we need to modify the parameters of the reaction in order to keep things working
-					//JOptionPane.showMessageDialog(null, "Errore, la scala upstream è " + scaleUpstream + ", la scala downstream è " + scaleDownstream + ",\nil / viene " + (scaleUpstream / scaleDownstream) + ",\nil * viene " + (scaleUpstream * scaleDownstream) + ",\nma la scala attuale della reazione è " + scale, nomeReazione, JOptionPane.WARNING_MESSAGE);
+					//JOptionPane.showMessageDialog(null, "Errore, la scala upstream ï¿½ " + scaleUpstream + ", la scala downstream ï¿½ " + scaleDownstream + ",\nil / viene " + (scaleUpstream / scaleDownstream) + ",\nil * viene " + (scaleUpstream * scaleDownstream) + ",\nma la scala attuale della reazione ï¿½ " + scale, nomeReazione, JOptionPane.WARNING_MESSAGE);
 					
 					//Counterbalance the scale introduced by the two scales
 					double factor = scale * scaleDownstream / scaleUpstream;
@@ -780,7 +851,7 @@ public class Model implements Serializable {
 					}
 				}*/
 				/*} else {
-					JOptionPane.showMessageDialog(null, "Tutto ok! La scala upstream è " + scaleUpstream + ", la scala downstream è " + scaleDownstream + ",\nil / viene " + (scaleUpstream / scaleDownstream) + ",\nil * viene " + (scaleUpstream * scaleDownstream) + ",\nma la scala attuale della reazione è " + scale, nomeReazione, JOptionPane.INFORMATION_MESSAGE);
+					JOptionPane.showMessageDialog(null, "Tutto ok! La scala upstream ï¿½ " + scaleUpstream + ", la scala downstream ï¿½ " + scaleDownstream + ",\nil / viene " + (scaleUpstream / scaleDownstream) + ",\nil * viene " + (scaleUpstream * scaleDownstream) + ",\nma la scala attuale della reazione ï¿½ " + scale, nomeReazione, JOptionPane.INFORMATION_MESSAGE);
 				}*/
 				nodeAttributes.setAttribute(edge.getSource().getIdentifier(), LEVELS_SCALE_FACTOR, scaleUpstream);
 				nodeAttributes.setAttribute(edge.getTarget().getIdentifier(), LEVELS_SCALE_FACTOR, scaleDownstream);
@@ -799,13 +870,16 @@ public class Model implements Serializable {
 		
 		
 		edges = (Iterator<Edge>) network.edgesIterator();
-		for (int i = 0; edges.hasNext(); i++) {
+		for (@SuppressWarnings("unused")
+		int i = 0; edges.hasNext(); i++) {
 			Edge edge = edges.next();
 			if (!edgeAttributes.getBooleanAttribute(edge.getIdentifier(), ENABLED)) continue;
-			double levelsScaleFactor = nodeAttributes.getDoubleAttribute(edge.getSource().getIdentifier(), LEVELS_SCALE_FACTOR) / nodeAttributes.getDoubleAttribute(edge.getTarget().getIdentifier(), LEVELS_SCALE_FACTOR);
+			double levelsScaleFactor;// = nodeAttributes.getDoubleAttribute(edge.getSource().getIdentifier(), LEVELS_SCALE_FACTOR) / nodeAttributes.getDoubleAttribute(edge.getTarget().getIdentifier(), LEVELS_SCALE_FACTOR);
 										//edgeAttributes.getDoubleAttribute(edge.getIdentifier(), LEVELS_SCALE_FACTOR); //Now the scale factor due to the nodes' scale is a property of each node
 			String r1Id = edge.getSource().getIdentifier(),
 				   r2Id = edge.getTarget().getIdentifier();
+			double scaleFactorR1 = nodeAttributes.getIntegerAttribute(edge.getSource().getIdentifier(), NUMBER_OF_LEVELS),
+				   scaleFactorR2 = nodeAttributes.getIntegerAttribute(edge.getTarget().getIdentifier(), NUMBER_OF_LEVELS);
 
 			Scenario[] scenarios = Scenario.sixScenarios;
 			Integer scenarioIdx = edgeAttributes.getIntegerAttribute(edge.getIdentifier(), SCENARIO);
@@ -813,6 +887,25 @@ public class Model implements Serializable {
 				//TODO: show the editing window
 				scenarioIdx = 0;
 			}
+			
+			switch (scenarioIdx) {
+				case 0:
+					levelsScaleFactor = 1 / scaleFactorR2 * scaleFactorR1;
+					break;
+				case 1:
+					levelsScaleFactor = scaleFactorR1;
+					break;
+				case 2:
+					double scaleFactorE1 = nodeAttributes.getIntegerAttribute(edgeAttributes.getStringAttribute(edge.getIdentifier(), Model.Properties.REACTANT_ID + "E1"), NUMBER_OF_LEVELS),
+						   scaleFactorE2 = nodeAttributes.getIntegerAttribute(edgeAttributes.getStringAttribute(edge.getIdentifier(), Model.Properties.REACTANT_ID + "E2"), NUMBER_OF_LEVELS);
+					levelsScaleFactor = 1 / scaleFactorR2 * scaleFactorE1 * scaleFactorE2;
+					//If we wanted, we could also "simplify" the multiplication above by trying to identify the substrate (called "r2Id") with one of the two upstream entities ("e1" and "e2"), but the result would be the same
+					break;
+				default:
+					levelsScaleFactor = 1.0;
+					break;
+			}
+			
 			int increment;
 			increment = edgeAttributes.getIntegerAttribute(edge.getIdentifier(), INCREMENT);
 			Scenario scenario;
@@ -941,16 +1034,16 @@ public class Model implements Serializable {
 			if (Double.isInfinite(minValueFormula)) {
 				minValueInTables = VariablesModel.INFINITE_TIME;
 			} else {
-				minValueInTables = Math.max(1, (int)Math.round(secStepFactor * levelsScaleFactor * minValueFormula * (1 - uncertainty / 100.0)));
+				minValueInTables = Math.max(0, (int)Math.round(secStepFactor * levelsScaleFactor * minValueFormula * (1 - uncertainty / 100.0)));
 			}
 			if (Double.isInfinite(maxValueFormula)) {
 				maxValueInTables = VariablesModel.INFINITE_TIME;
 			} else {
-				maxValueInTables = Math.max(1, (int)Math.round(secStepFactor * levelsScaleFactor * maxValueFormula * (1 + uncertainty / 100.0)));
+				maxValueInTables = Math.max(0, (int)Math.round(secStepFactor * levelsScaleFactor * maxValueFormula * (1 + uncertainty / 100.0)));
 			}
 			
-			if (minValueInTables == 1) {
-				double proposedSecStep = secPerStep / (1.5 * minValueRate / (secStepFactor * levelsScaleFactor * (1 - uncertainty / 100.0)));
+			if (minValueInTables == 0) {
+				double proposedSecStep = secPerStep / (1.1 * minValueRate / (secStepFactor * levelsScaleFactor * (1 - uncertainty / 100.0)));
 				if (proposedSecStep < maxSecStep) {
 					maxSecStep = proposedSecStep;
 				}
@@ -982,11 +1075,11 @@ public class Model implements Serializable {
 //					//System.err.println("La reazione " + nodeAttributes.getAttribute(r1Id, Model.Properties.CANONICAL_NAME) + " --> " + nodeAttributes.getAttribute(r2Id, Model.Properties.CANONICAL_NAME) + " ha un uno in angolo alto-dx!! (" + (nLevelsR1) + ", " + 0 + ")");
 //					double rate = scenario.computeRate(nLevelsR1, nLevelsR1, 0, nLevelsR2,  activatingReaction);
 //					/*if (rate > 1) {
-//						System.err.println("\tIl rate (" + rate + ") è infatti > 1");
+//						System.err.println("\tIl rate (" + rate + ") ï¿½ infatti > 1");
 //					} else {
-//						System.err.println("\tIl rate (" + rate + ") però NON è > 1! Il reciproco viene " + (int)Math.round(1 / rate) + ", ma l'uno ce l'abbiamo perché facciamo -" + uncertainty + "%, che viene appunto " + ((int)((int)Math.round(1 / rate) * (100.0 - uncertainty) / 100.0)));
+//						System.err.println("\tIl rate (" + rate + ") perï¿½ NON ï¿½ > 1! Il reciproco viene " + (int)Math.round(1 / rate) + ", ma l'uno ce l'abbiamo perchï¿½ facciamo -" + uncertainty + "%, che viene appunto " + ((int)((int)Math.round(1 / rate) * (100.0 - uncertainty) / 100.0)));
 //					}*/
-//					//System.err.println("\tQuindi consiglio di DIVIDERE sec/step almeno per " + (1.5 * rate / ((100.0 - uncertainty) / 100.0)) + ", ottenendo quindi non più di " + (secPerStep / (1.5 * rate / (secStepFactor * (100.0 - uncertainty) / 100.0))));
+//					//System.err.println("\tQuindi consiglio di DIVIDERE sec/step almeno per " + (1.5 * rate / ((100.0 - uncertainty) / 100.0)) + ", ottenendo quindi non piï¿½ di " + (secPerStep / (1.5 * rate / (secStepFactor * (100.0 - uncertainty) / 100.0))));
 //					double proposedSecStep = secPerStep / (1.5 * rate / (secStepFactor * levelsScaleFactor * (1 - uncertainty / 100.0))); //Math.floor(secPerStep / (1.5 * rate / ((100.0 - uncertainty) / 100.0)));
 //					if (proposedSecStep < maxSecStep) {
 //						maxSecStep = proposedSecStep;
@@ -1021,11 +1114,11 @@ public class Model implements Serializable {
 //					//System.err.println("La reazione " + nodeAttributes.getAttribute(r1Id, Model.Properties.CANONICAL_NAME) + " --| " + nodeAttributes.getAttribute(r2Id, Model.Properties.CANONICAL_NAME) + " ha un uno in angolo basso-dx!! (" + (nLevelsR1) + ", " + (nLevelsR2) + ")");
 //					double rate = scenario.computeRate(nLevelsR1, nLevelsR1, nLevelsR2, nLevelsR2, activatingReaction);
 //					/*if (rate > 1) {
-//						System.err.println("\tIl rate (" + rate + ") è infatti > 1");
+//						System.err.println("\tIl rate (" + rate + ") ï¿½ infatti > 1");
 //					} else {
-//						System.err.println("\tIl rate (" + rate + ") però NON è > 1! Il reciproco viene " + (int)Math.round(1 / rate) + ", ma l'uno ce l'abbiamo perché facciamo -" + uncertainty + "%, che viene appunto " + ((int)((int)Math.round(1 / rate) * (100.0 - uncertainty) / 100.0)));
+//						System.err.println("\tIl rate (" + rate + ") perï¿½ NON ï¿½ > 1! Il reciproco viene " + (int)Math.round(1 / rate) + ", ma l'uno ce l'abbiamo perchï¿½ facciamo -" + uncertainty + "%, che viene appunto " + ((int)((int)Math.round(1 / rate) * (100.0 - uncertainty) / 100.0)));
 //					}*/
-//					//System.err.println("\tQuindi consiglio di DIVIDERE sec/step almeno per " + (1.5 * rate / ((100.0 - uncertainty) / 100.0)) + ", ottenendo quindi non più di " + (secPerStep / (1.5 * rate / (secStepFactor * (100.0 - uncertainty) / 100.0))));
+//					//System.err.println("\tQuindi consiglio di DIVIDERE sec/step almeno per " + (1.5 * rate / ((100.0 - uncertainty) / 100.0)) + ", ottenendo quindi non piï¿½ di " + (secPerStep / (1.5 * rate / (secStepFactor * (100.0 - uncertainty) / 100.0))));
 //					double proposedSecStep = secPerStep / (1.5 * rate / (secStepFactor * levelsScaleFactor * (1 - uncertainty / 100.0))); //Math.floor(secPerStep / (1.5 * rate / ((100.0 - uncertainty) / 100.0)));
 //					if (proposedSecStep < maxSecStep) {
 //						maxSecStep = proposedSecStep;

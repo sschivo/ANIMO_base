@@ -73,7 +73,7 @@ public class Scenario {
 				} else {
 					S = nLevelsR2 - r2Level;
 				}
-				double rate = par * E * S / (nLevelsR2 / 15.0); //TODO: This is an absurd problem. Why do we need to divide by the levelScaleFactor of the downstream reactant only when that reaectant is part of the reaction formula??
+				double rate = par * E * S;
 				return rate;
 			}
 			
@@ -110,7 +110,7 @@ public class Scenario {
 				} else {
 					E2 = nLevelsR2 - r2Level;
 				}
-				double rate = par * E1 * E2 / (nLevelsR2 / 15.0); //TODO: This is an absurd problem. Why do we need to divide by the levelScaleFactor of the downstream reactant only when that reaectant is part of the reaction formula??
+				double rate = par * E1 * E2;
 				return rate;
 			}
 			
@@ -199,7 +199,7 @@ public class Scenario {
 	public Double computeFormula(int r1Level, int nLevelsR1, boolean activeR1, int r2Level, int nLevelsR2, boolean activeR2) {
 		double rate = computeRate(r1Level, nLevelsR1, activeR1, r2Level, nLevelsR2, activeR2);
 		if (rate > 1e-8) {
-			//return Math.max(1, (int)Math.round(1 / rate)); //We need to put at least 1 because otherwise the reaction will keep happening forever (it is not very nice not to let time pass..)
+			//return Math.max(0, (int)Math.round(1 / rate)); //We need to put at least 1 because otherwise the reaction will keep happening forever (it is not very nice not to let time pass..)
 			return 1.0 / rate;
 		} else {
 			//return INFINITE_TIME;
