@@ -414,6 +414,8 @@ public class Model implements Serializable {
 				}
 				throw new InatException("The reaction " + edgeName + " has an invalid scenario setting (" + scenarioIdx + "). Now I set it to the first available: please set the correct parameters.");
 			}
+			//System.err.println("levelsScaleFactor = " + levelsScaleFactor);
+			//System.err.println("timeScale = " + secStepFactor);
 
 			r.let(Model.Properties.SCENARIO).be(scenarioIdx);
 			r.let(LEVELS_SCALE_FACTOR + "_reaction").be(levelsScaleFactor);
@@ -516,9 +518,12 @@ public class Model implements Serializable {
 					} else {
 						timesLTable.set(j, k, Math.max(1, (int)Math.round(secStepFactor * levelsScaleFactor * t * (1 - uncertainty / 100.0))));
 						timesUTable.set(j, k, Math.max(1, (int)Math.round(secStepFactor * levelsScaleFactor * t * (1 + uncertainty / 100.0))));
+						//System.err.println("tL[" + j + "][" + k + "] = " + Math.max(1, (int)Math.round(secStepFactor * levelsScaleFactor * t * (1 - uncertainty / 100.0))) + " ");
 					}
 				}
+				//System.err.println();
 			}
+			//System.err.println();
 			r.let(TIMES_L).be(timesLTable);
 			r.let(TIMES_U).be(timesUTable);
 			

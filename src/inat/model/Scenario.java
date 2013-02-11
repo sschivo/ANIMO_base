@@ -209,9 +209,9 @@ public class Scenario {
 
 	/**
 	 * Generate the times table based on the scenario formula and parameters.
-	 * @param nLevelsReactant1 The total number of levels of reactant1 (the enzyme or catalyst)
+	 * @param nLevelsReactant1 The total number of levels of reactant1 (the enzyme or catalyst) + 1
 	 * @param activeR1 true if the R1 input to the formula is the concentration of active reactant 1 
-	 * @param nLevelsReactant2 The total number of levels of reactant2 (the substrate)
+	 * @param nLevelsReactant2 The total number of levels of reactant2 (the substrate) + 1
 	 * @param activeR2 true if the R2 input to the formula is the concentration of active reactant 2
 	 * @return Output is a list for no particular reason anymore. It used to be
 	 * set as a Cytoscape property, but these tables can become clumsy to be stored
@@ -230,7 +230,7 @@ public class Scenario {
 				times.add(Double.POSITIVE_INFINITY); //all reactant2 already reacted (inactive) = no reaction
 			}
 			i = 1; //the first row was already done here, with all infinites
-			limitI = nLevelsReactant2; //the last row will have the smallest valus
+			limitI = nLevelsReactant2; //the last row will have the smallest values
 		}
 		for (;i<limitI;i++) {
 			int j, limitJ;
@@ -243,7 +243,7 @@ public class Scenario {
 				limitJ = nLevelsReactant1; //the last column will have the smallest values
 			}
 			for (;j<limitJ;j++) {
-				times.add(computeFormula(j, nLevelsReactant1, activeR1, i, nLevelsReactant2, activeR2));
+				times.add(computeFormula(j, nLevelsReactant1 - 1, activeR1, i, nLevelsReactant2 - 1, activeR2)); //Please note: the actual number of levels is one less than the one we were passed, as that is actually the number of columns/rows of the table (which comprises a column and a row of infinites)!
 			}
 			if (!activeR1) { //We depend on the inactivity of R1, which in the last column is completely active. So the last column has all infinite
 				times.add(Double.POSITIVE_INFINITY);
