@@ -151,7 +151,7 @@ public class InatResultPanel extends JPanel implements ChangeListener, GraphScal
 			if ((!r.toLowerCase().contains(ResultAverager.STD_DEV.toLowerCase()) && !r.toLowerCase().contains(ResultAverager.OVERLAY_NAME.toLowerCase()) 
 						&& model.getReactant(r) != null && model.getReactant(r).get(Model.Properties.PLOTTED).as(Boolean.class))
 				|| ((r.toLowerCase().contains(ResultAverager.STD_DEV.toLowerCase()) || r.toLowerCase().contains(ResultAverager.OVERLAY_NAME.toLowerCase())) 
-						&& model.getReactant(r) != null && model.getReactant(stdDevReactantName).get(Model.Properties.PLOTTED).as(Boolean.class))) {
+						&& model.getReactant(stdDevReactantName) != null && model.getReactant(stdDevReactantName).get(Model.Properties.PLOTTED).as(Boolean.class))) {
 				
 				filteredSeriesNames.add(r);
 			}
