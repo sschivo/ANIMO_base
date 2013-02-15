@@ -94,8 +94,7 @@ public class INATPropertyChangeListener implements PropertyChangeListener {
 							CyNetworkView view = Cytoscape.getCurrentNetworkView();
 							CyAttributes nodeAttr = Cytoscape.getNodeAttributes();
 							//CyAttributes edgeAttr = Cytoscape.getEdgeAttributes();
-							for (@SuppressWarnings("unchecked")
-							Iterator<NodeView> i = view.getSelectedNodes().iterator(); i.hasNext(); ) {
+							for (Iterator<NodeView> i = view.getSelectedNodes().iterator(); i.hasNext(); ) {
 								NodeView nView = i.next();
 								CyNode node = (CyNode)nView.getNode();
 								boolean status;
@@ -549,11 +548,26 @@ public class INATPropertyChangeListener implements PropertyChangeListener {
 		}
 		if (evt.getPropertyName().equalsIgnoreCase(Cytoscape.NETWORK_LOADED)) {
 			//As there can be edges with intermediate curving points, make those points curved instead of angled (they look nicer)
+			@SuppressWarnings("rawtypes")
 			List edgeList = Cytoscape.getCurrentNetworkView().getEdgeViewsList();
-			for (Iterator i = edgeList.listIterator();i.hasNext();) {
+			for (@SuppressWarnings("rawtypes")
+			Iterator i = edgeList.listIterator();i.hasNext();) {
 				EdgeView ev = (EdgeView)(i.next());
 				ev.setLineType(EdgeView.CURVED_LINES);
 			}
+			VisualMappingManager vizMap = Cytoscape.getVisualMappingManager();
+			vizMap.setVisualStyle("default");
+			@SuppressWarnings("rawtypes")
+			Iterator it = Cytoscape.getCurrentNetwork().nodesList().iterator();
+			CyAttributes nodeAttr = Cytoscape.getNodeAttributes();
+			while (it.hasNext()) {
+				Node n = (Node)it.next();
+				if (nodeAttr.hasAttribute(n.getIdentifier(), Model.Properties.INITIAL_LEVEL) && nodeAttr.hasAttribute(n.getIdentifier(), Model.Properties.NUMBER_OF_LEVELS)) {
+					double val = 1.0 * nodeAttr.getIntegerAttribute(n.getIdentifier(), Model.Properties.INITIAL_LEVEL) / nodeAttr.getIntegerAttribute(n.getIdentifier(), Model.Properties.NUMBER_OF_LEVELS);
+					nodeAttr.setAttribute(n.getIdentifier(), Model.Properties.SHOWN_LEVEL, val); //Set the initial values for the activity ratio of the nodes, to color them correctly
+				}
+			}
+			Cytoscape.getCurrentNetworkView().applyVizmapper(vizMap.getVisualStyle());
 		}
 		if (evt.getPropertyName().equalsIgnoreCase(Cytoscape.NETWORK_CREATED)) {
 			//addVisualMappings();
@@ -565,6 +579,7 @@ public class INATPropertyChangeListener implements PropertyChangeListener {
 					newNodeNumber = network.getNodeCount();
 				if (newEdgeNumber > currentEdgeNumber) {
 					//JOptionPane.showMessageDialog(null, "Nuovo arco inserito");
+					@SuppressWarnings("rawtypes")
 					List oldEdges = new Vector(),
 						 newEdges;
 					for (Object o : edgesArray) {
@@ -592,6 +607,7 @@ public class INATPropertyChangeListener implements PropertyChangeListener {
 				if (newNodeNumber > currentNodeNumber) {
 					network.getSelectedNodes();
 					//JOptionPane.showMessageDialog(null, "Nuovo nodo inserito");
+					@SuppressWarnings("rawtypes")
 					Set nodes = network.getSelectedNodes();
 					Object[] nodesArray = nodes.toArray();
 					for (Object o : nodesArray) {
