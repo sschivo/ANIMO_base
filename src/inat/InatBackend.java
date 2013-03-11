@@ -230,6 +230,7 @@ public class InatBackend {
 						boolean status = nodeAttr.getBooleanAttribute(nodeId, Model.Properties.ENABLED);
 						//nodeAttr.setAttribute(nodeId, Model.Properties.ENABLED, status);
 						Node node = null;
+						@SuppressWarnings("rawtypes")
 						Iterator nodeIter = network.nodesIterator();
 						while (nodeIter.hasNext()) {
 							Node n = (Node)(nodeIter.next());
@@ -242,8 +243,8 @@ public class InatBackend {
 						if (node != null) {
 							int [] adjacentEdges = network.getAdjacentEdgeIndicesArray(node.getRootGraphIndex(), true, true, true);
 							for (int edgeIdx : adjacentEdges) {
-								//TODO: questo è giusto per ricordarsi quanto schifo faccia sta roba.
-								//non è possibile che non si possa distinguere il caso in cui si sta caricando la rete (e quindi la visualizzazione non esiste)
+								//TODO: questo ï¿½ giusto per ricordarsi quanto schifo faccia sta roba.
+								//non ï¿½ possibile che non si possa distinguere il caso in cui si sta caricando la rete (e quindi la visualizzazione non esiste)
 								//dal caso normale
 								EdgeView ziocane = view.getEdgeView(edgeIdx);
 								if (ziocane == null) return;
@@ -294,7 +295,7 @@ public class InatBackend {
 					
 					if (attributeName.equals(SECONDS_PER_POINT)) {
 						if (oldAttributeValue == null) { //This way you can choose whatever scale you want also at the beginning (when you first have to choose a sec/step value)
-							oldAttributeValue = 12;
+							oldAttributeValue = 1;
 						}
 						
 						double newSecondsPerPoint = 0, oldSecondsPerPoint = 0, factor = 0;
