@@ -36,6 +36,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
+import java.util.Collections;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
@@ -922,6 +923,9 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 				s.setName(s.getMaster().getName() + Series.SLAVE_SUFFIX);
 			}
 		}
+		
+		Collections.sort(data);
+		
 		customLegendPosition = false;
 		needRedraw = true;
 	}
@@ -949,6 +953,7 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 		BufferedReader is = new BufferedReader(new FileReader(f));
 		String firstLine = is.readLine();
 		if (firstLine == null) {
+			is.close();
 			throw new IOException("Error: the file " + fileName + " is empty!");
 		}
 		StringTokenizer tritatutto = new StringTokenizer(firstLine, ",");
@@ -979,6 +984,7 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 				grafici.elementAt(i).add(new P(xValue, Double.parseDouble(s)));
 			}
 		}
+		is.close();
 		
 		if (!mustRescaleYValues) {
 								 //With reference to the two cases listed at the start of the function, this means that we are either in case 1 (and thus we simply need to
@@ -1031,6 +1037,9 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 				s.setEnabled(true);
 			}
 		}
+		
+		Collections.sort(data);
+		
 		customLegendPosition = false;
 		needRedraw = true;
 	}
@@ -1098,6 +1107,16 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 		scale.setMaxX(new Double(maxX));
 		scale.setMinY(new Double(minY));
 		scale.setMaxY(new Double(maxY));
+		for (GraphScaleListener gl : scaleListeners) {
+			gl.scaleChanged(scale);
+		}
+	}
+	
+	public void setDrawArea(double minX, double maxX, double minY, double maxY) {
+		scale.setMinX(minX);
+		scale.setMaxX(maxX);
+		scale.setMinY(minY);
+		scale.setMaxY(maxY);
 		for (GraphScaleListener gl : scaleListeners) {
 			gl.scaleChanged(scale);
 		}
@@ -1392,6 +1411,9 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 						this.parseCSV(fileName);
 						needRedraw = true;
 						this.repaint();
+						for (GraphScaleListener gl : scaleListeners) {
+							gl.scaleChanged(scale);
+						}
 					} catch (Exception ex) {
 						System.err.println(GENERIC_ERROR_S + ex);
 						ex.printStackTrace();

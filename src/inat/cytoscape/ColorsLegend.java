@@ -8,9 +8,22 @@ import java.awt.Graphics2D;
 import java.awt.LinearGradientPaint;
 import java.awt.Polygon;
 import java.awt.RenderingHints;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.awt.geom.Rectangle2D;
+import java.util.List;
+import java.util.Vector;
 
 import javax.swing.JPanel;
+
+import cytoscape.Cytoscape;
+import cytoscape.visual.NodeAppearanceCalculator;
+import cytoscape.visual.VisualMappingManager;
+import cytoscape.visual.VisualPropertyType;
+import cytoscape.visual.VisualStyle;
+import cytoscape.visual.mappings.ContinuousMapping;
+import cytoscape.visual.mappings.ObjectMapping;
+import cytoscape.visual.mappings.continuous.ContinuousMappingPoint;
 
 public class ColorsLegend extends JPanel {
 	private static final long serialVersionUID = 9182942528018588493L;
@@ -18,7 +31,69 @@ public class ColorsLegend extends JPanel {
 	private Color[] colors = null;
 	
 	public ColorsLegend() {
-		
+		this.addMouseListener(new MouseListener() {
+
+			@Override
+			public void mouseClicked(MouseEvent arg0) {
+				updateFromSettings();
+			}
+
+			@Override
+			public void mouseEntered(MouseEvent arg0) {
+				// Auto-generated method stub
+			}
+
+			@Override
+			public void mouseExited(MouseEvent arg0) {
+				// Auto-generated method stub
+			}
+
+			@Override
+			public void mousePressed(MouseEvent arg0) {
+				// Auto-generated method stub
+			}
+
+			@Override
+			public void mouseReleased(MouseEvent arg0) {
+				// Auto-generated method stub
+			}
+			
+		});
+	}
+	
+	public void updateFromSettings() {
+		VisualMappingManager vizMap = Cytoscape.getVisualMappingManager();
+		VisualStyle visualStyle = vizMap.getVisualStyle();
+		NodeAppearanceCalculator nac = visualStyle.getNodeAppearanceCalculator();
+		Vector<ObjectMapping> mappings = nac.getCalculator(VisualPropertyType.NODE_FILL_COLOR).getMappings();
+		for (ObjectMapping om : mappings) {
+			if (!(om instanceof ContinuousMapping)) continue;
+			ContinuousMapping mapping = (ContinuousMapping)om;
+			List<ContinuousMappingPoint> points = mapping.getAllPoints();
+			float fractions[] = new float[points.size()];
+			Color colors[] = new Color[points.size()];
+			
+			int i = 0;
+			float min = Float.POSITIVE_INFINITY, max = Float.NEGATIVE_INFINITY, intervalSize = 0.0f;
+			for (ContinuousMappingPoint point : points) {
+				float v = (float)point.getValue().doubleValue();
+				if (v < min) {
+					min = v;
+				}
+				if (v > max) {
+					max = v;
+				}
+			}
+			intervalSize = max - min;
+			for (ContinuousMappingPoint point : points) {
+				//System.err.println("Leggo un punto dal valore di " + (float)point.getValue().doubleValue());
+				//fractions[fractions.length - 1 - i] = 1 - (float)point.getValue().doubleValue();
+				fractions[fractions.length - 1 - i] = 1 - ((float)point.getValue().doubleValue() - min) / intervalSize;
+				colors[colors.length - 1 - i] = (Color)point.getRange().equalValue;
+				i++;
+			}
+			this.setParameters(fractions, colors);
+		}
 	}
 	
 	public void setParameters(float[] fractions, Color[] colors) {

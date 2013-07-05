@@ -44,9 +44,7 @@ import cytoscape.visual.mappings.BoundaryRangeValues;
 import cytoscape.visual.mappings.ContinuousMapping;
 import cytoscape.visual.mappings.DiscreteMapping;
 import cytoscape.visual.mappings.LinearNumberToColorInterpolator;
-import cytoscape.visual.mappings.ObjectMapping;
 import cytoscape.visual.mappings.PassThroughMapping;
-import cytoscape.visual.mappings.continuous.ContinuousMappingPoint;
 import ding.view.EdgeContextMenuListener;
 import ding.view.NodeContextMenuListener;
 
@@ -365,6 +363,12 @@ public class INATPropertyChangeListener implements PropertyChangeListener {
 			calco = new BasicCalculator(myVisualStyleName + "Mapping_for_node_label", mp, VisualPropertyType.NODE_LABEL);
 			nac.setCalculator(calco);
 			
+//			mp = new PassThroughMapping(String.class, Model.Properties.DESCRIPTION);
+//			calco = new BasicCalculator(myVisualStyleName + "Mapping_for_node_tooltip", mp, VisualPropertyType.NODE_TOOLTIP);
+//			nac.setCalculator(calco);
+//			calco = new BasicCalculator(myVisualStyleName + "Mapping_for_edge_tooltip", mp, VisualPropertyType.EDGE_TOOLTIP);
+//			eac.setCalculator(calco);
+			
 			final ContinuousMapping mc = new ContinuousMapping(Color.class, Model.Properties.SHOWN_LEVEL);
 			Color lowerBound = new Color(204, 0, 0), //Color.RED.darker(),
 			  middleBound = new Color(255, 204, 0), //Color.YELLOW.darker(),
@@ -634,7 +638,7 @@ public class INATPropertyChangeListener implements PropertyChangeListener {
 	
 	public ColorsListener getColorsListener() {
 		if (colorsListener == null) {
-			colorsListener = new ColorsListener();
+			return colorsListener = new ColorsListener();
 		}
 		return this.colorsListener;
 	}
@@ -650,38 +654,7 @@ public class INATPropertyChangeListener implements PropertyChangeListener {
 		@Override
 		public void stateChanged(ChangeEvent e) {
 			try {
-				VisualMappingManager vizMap = Cytoscape.getVisualMappingManager();
-				VisualStyle visualStyle = vizMap.getVisualStyle();
-				NodeAppearanceCalculator nac = visualStyle.getNodeAppearanceCalculator();
-				Vector<ObjectMapping> mappings = nac.getCalculator(VisualPropertyType.NODE_FILL_COLOR).getMappings();
-				for (ObjectMapping om : mappings) {
-					if (!(om instanceof ContinuousMapping)) continue;
-					ContinuousMapping mapping = (ContinuousMapping)om;
-					List<ContinuousMappingPoint> points = mapping.getAllPoints();
-					float fractions[] = new float[points.size()];
-					Color colors[] = new Color[points.size()];
-					
-					int i = 0;
-					float min = Float.POSITIVE_INFINITY, max = Float.NEGATIVE_INFINITY, intervalSize = 0.0f;
-					for (ContinuousMappingPoint point : points) {
-						float v = (float)point.getValue().doubleValue();
-						if (v < min) {
-							min = v;
-						}
-						if (v > max) {
-							max = v;
-						}
-					}
-					intervalSize = max - min;
-					for (ContinuousMappingPoint point : points) {
-						//System.err.println("Leggo un punto dal valore di " + (float)point.getValue().doubleValue());
-						//fractions[fractions.length - 1 - i] = 1 - (float)point.getValue().doubleValue();
-						fractions[fractions.length - 1 - i] = 1 - ((float)point.getValue().doubleValue() - min) / intervalSize;
-						colors[colors.length - 1 - i] = (Color)point.getRange().equalValue;
-						i++;
-					}
-					legendColors.setParameters(fractions, colors);
-				}
+				legendColors.updateFromSettings();
 			} catch (Exception ex) {
 				
 			}
@@ -693,36 +666,7 @@ public class INATPropertyChangeListener implements PropertyChangeListener {
 		@Override
 		public void stateChanged(ChangeEvent arg0) {
 			try {
-				VisualMappingManager vizMap = Cytoscape.getVisualMappingManager();
-				VisualStyle visualStyle = vizMap.getVisualStyle();
-				NodeAppearanceCalculator nac = visualStyle.getNodeAppearanceCalculator();
-				DiscreteMapping shapesMap = null,
-								widthsMap = null,
-								heightsMap = null;
-				Vector<ObjectMapping> mappings = nac.getCalculator(VisualPropertyType.NODE_SHAPE).getMappings();
-				for (ObjectMapping om : mappings) {
-					if (om instanceof DiscreteMapping) {
-						shapesMap = (DiscreteMapping)om;
-						break;
-					}
-				}
-				mappings = nac.getCalculator(VisualPropertyType.NODE_WIDTH).getMappings();
-				for (ObjectMapping om : mappings) {
-					if (om instanceof DiscreteMapping) {
-						widthsMap = (DiscreteMapping)om;
-						break;
-					}
-				}
-				mappings = nac.getCalculator(VisualPropertyType.NODE_HEIGHT).getMappings();
-				for (ObjectMapping om : mappings) {
-					if (om instanceof DiscreteMapping) {
-						heightsMap = (DiscreteMapping)om;
-						break;
-					}
-				}
-				if (shapesMap != null && widthsMap != null && heightsMap != null) {
-					legendShapes.setParameters(shapesMap, widthsMap, heightsMap);
-				}
+				legendShapes.updateFromSettings();
 			} catch (Exception ex) {
 				
 			}

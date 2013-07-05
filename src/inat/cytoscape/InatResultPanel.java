@@ -1,5 +1,6 @@
 package inat.cytoscape;
 
+import inat.InatBackend;
 import inat.analyser.uppaal.ResultAverager;
 import inat.analyser.uppaal.SimpleLevelResult;
 import inat.graph.FileUtils;
@@ -8,6 +9,7 @@ import inat.graph.GraphScaleListener;
 import inat.graph.Scale;
 import inat.model.Model;
 import inat.util.Quadruple;
+import inat.util.XmlConfiguration;
 
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
@@ -20,12 +22,16 @@ import java.io.FileOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.PrintStream;
+import java.text.DecimalFormat;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.Map;
 import java.util.Vector;
 
 import javax.swing.AbstractAction;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JSlider;
@@ -52,9 +58,13 @@ public class InatResultPanel extends JPanel implements ChangeListener, GraphScal
 	private static final long serialVersionUID = -163756255393221954L;
 	private final Model model; //The model from which the results were obtained
 	private final SimpleLevelResult result; //Contains the results to be shown in this panel
+	private JPanel container; //The panel on which all the components of this resultPanel are layed out (thus, not only the panel itself, but also the slider, buttons etc)
 	private int myIndex; //The index at which the panel is placed when added to the CytoPanel
 	private JSlider slider; //The slider to allow the user to choose a moment in the simulation time, which will be reflected on the network window as node colors, indicating the corresponding reactant activity level.
-	private double scale; //The time scale
+	private double scale, //The time scale
+	   minValueOnGraph,
+	   maxValueOnGraph, //the scale to translate a value of the slider (in the interval [0,1]) to the corresponding position in the graph
+	   scaleForConcentration; //the scale to translate a value of the slider (in the interval [0,1]) to the corresponding value resulting from the UPPAAL trace
 	private static final String START_DIFFERENCE = "Difference with...", //The three strings here are for one button. Everybody normally shows START_DIFFERENCE. When the user presses on the button (differenceWith takes the value of this for the InatResultPanel where the button was pressed),
 								END_DIFFERENCE = "Difference with this", //every other panel shows the END_DIFFERENCE. If the user presses a button with END_DIFFERENCE, a new InatResultPanel is created with the difference between the data in differenceWith and the panel where END_DIFFERENCE was pressed. Then every panel goes back to START_DIFFERENCE.
 								CANCEL_DIFFERENCE = "Cancel difference"; //CANCEL_DIFFERENCE is shown as text of the button only on the panel whare START_DIFFERENCE was pressed. If CANCEL_DIFFERENCE is pressed, then no difference is computed and every panel simply goes back to START_DIFFERENCE
@@ -94,7 +104,7 @@ public class InatResultPanel extends JPanel implements ChangeListener, GraphScal
 	 * @param model the model this panel uses
 	 * @param result the results object this panel uses
 	 */
-	public InatResultPanel(Model model, SimpleLevelResult result, double scale, String title) {
+	public InatResultPanel(final Model model, final SimpleLevelResult result, double scale, String title) {
 		super(new BorderLayout(), true);
 		allExistingPanels.add(this);
 		this.model = model;
@@ -106,14 +116,70 @@ public class InatResultPanel extends JPanel implements ChangeListener, GraphScal
 		this.slider = new JSlider();
 		this.slider.setOrientation(JSlider.HORIZONTAL);
 		this.slider.setMinimum(0);
-		int max = (int)Math.round(result.getTimeIndices().get(result.getTimeIndices().size() - 1) * scale); //(int)Math.round(result.getTimeIndices().get(result.getTimeIndices().size() - 1));
-		this.slider.setMaximum(max);
+		//int max = (int)Math.round(result.getTimeIndices().get(result.getTimeIndices().size() - 1) * scale);
+		if (result.isEmpty()) {
+			this.scaleForConcentration = 1;
+		} else {
+			this.scaleForConcentration = result.getTimeIndices().get(result.getTimeIndices().size() - 1);
+		}
+		this.minValueOnGraph = 0;
+		this.maxValueOnGraph = this.scaleForConcentration * this.scale;
+		this.slider.setMaximum(200);
 		this.slider.setPaintTicks(true);
 		this.slider.setPaintLabels(true);
-		this.slider.setMajorTickSpacing(max / 10);
-		this.slider.setMinorTickSpacing(max / 100);
+		slider.setMajorTickSpacing(slider.getMaximum() / 10);
+		slider.setMinorTickSpacing(slider.getMaximum() / 100);
+		Hashtable<Integer, JLabel> labels = new Hashtable<Integer, JLabel>();
+		DecimalFormat formatter = new DecimalFormat("0.###");
+		int nLabels = 10;
+		for (int i=0;i<=nLabels;i++) {
+			double val = 1.0 * i / nLabels * this.maxValueOnGraph;
+			String valStr = formatter.format(val);
+			labels.put((int)Math.round(1.0 * i / nLabels * slider.getMaximum()), new JLabel(valStr));
+		}
+		this.slider.setLabelTable(labels);
+		
 		this.slider.setValue(0);
 		this.slider.getModel().addChangeListener(this);
+		
+		ImageIcon icon = null;
+		try {
+			icon = new ImageIcon(getClass().getResource("/copy20x20.png"));
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+		JButton setParameters;
+		if (icon != null) {
+			setParameters = new JButton(icon);
+		} else {
+			setParameters = new JButton("Copy");
+		}
+		setParameters.setToolTipText("Copy the currently shown activity levels as initial activity levels in the model");
+		setParameters.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				//set the initial activity levels of the reactants in the network as they are in this point of the simulation ("this point" = where the slider is currently)
+				double t = getSliderTime();
+				CyAttributes nodeAttributes = Cytoscape.getNodeAttributes();
+				int nLevels = result.getNumberOfLevels();
+				for (String r : result.getReactantIds()) {
+					if (model.getReactant(r) == null) continue;
+					final String id = model.getReactant(r).get(Model.Properties.REACTANT_NAME).as(String.class);
+					//System.err.println("R id = " + id);
+					final double level = result.getConcentration(r, t) / nLevels * model.getReactant(r).get(Model.Properties.NUMBER_OF_LEVELS).as(Integer.class); //We also rescale the value to the correct number of levels of each node
+					nodeAttributes.setAttribute(id, Model.Properties.INITIAL_LEVEL, (int)Math.round(level));
+				}
+			}
+		});
+		final XmlConfiguration configuration = InatBackend.get().configuration();
+		String areWeTheDeveloperStr = configuration.get(XmlConfiguration.DEVELOPER_KEY);
+		boolean areWeTheDeveloper = false;
+		if (areWeTheDeveloperStr != null) {
+			areWeTheDeveloper = Boolean.parseBoolean(areWeTheDeveloperStr);
+		}
+		if (areWeTheDeveloper) {
+			sliderPanel.add(setParameters, BorderLayout.WEST);
+		}
 		
 		sliderPanel.add(this.slider, BorderLayout.CENTER);
 		
@@ -165,12 +231,23 @@ public class InatResultPanel extends JPanel implements ChangeListener, GraphScal
 			int nLevels = model.getProperties().get(Model.Properties.NUMBER_OF_LEVELS).as(Integer.class);
 			g.declareMaxYValue(nLevels);
 			double maxTime = scale * result.getTimeIndices().get(result.getTimeIndices().size()-1);
-			g.setDrawArea(0, (int)maxTime, 0, nLevels); //This is done because the graph automatically computes the area to be shown based on minimum and maximum values for X and Y, including StdDev. So, if the StdDev of a particular series (which represents an average) in a particular point is larger that the value of that series in that point, the minimum y value would be negative. As this is not very nice to see, I decided that we will recenter the graph to more strict bounds instead.
+//			int maxTimeInt = (int)maxTime;
+//			if (maxTimeInt < maxTime) { //If we get 6.2 as last time on the trace, we show up to 7, so that we let the user see also the end of the trace
+//				maxTimeInt++;
+//			}
+			g.setDrawArea(0, maxTime, 0, nLevels); //This is done because the graph automatically computes the area to be shown based on minimum and maximum values for X and Y, including StdDev. So, if the StdDev of a particular series (which represents an average) in a particular point is larger that the value of that series in that point, the minimum y value would be negative. As this is not very nice to see, I decided that we will recenter the graph to more strict bounds instead.
+														//Also, if the maximum value reached during the simulation is not the maximum activity level, the graph does not loook nice
 		}
 		this.add(g, BorderLayout.CENTER);
 		g.addGraphScaleListener(this);
 	}
 
+	
+
+	private double getSliderTime() {
+		return (1.0 * this.slider.getValue() / this.slider.getMaximum() * (this.maxValueOnGraph - this.minValueOnGraph) + this.minValueOnGraph) / this.scale; //1.0 * this.slider.getValue() / this.slider.getMaximum() * this.scaleForConcentration; //this.slider.getValue() / scale;
+	}
+	
 	/**
 	 * When the user moves the time slider, we update the activity ratio (SHOWN_LEVEL) of
 	 * all nodes in the network window, so that, thanks to the continuous Visual Mapping
@@ -179,9 +256,12 @@ public class InatResultPanel extends JPanel implements ChangeListener, GraphScal
 	 */
 	@Override
 	public void stateChanged(ChangeEvent e) {
-		final double t = this.slider.getValue() / scale;
+		final double t = getSliderTime();
 		
-		g.setRedLinePosition(this.slider.getValue() - this.slider.getMinimum());
+		double graphWidth = this.maxValueOnGraph - this.minValueOnGraph;
+		g.setRedLinePosition(1.0 * this.slider.getValue() / this.slider.getMaximum() * graphWidth);
+		
+		//g.setRedLinePosition(this.slider.getValue() - this.slider.getMinimum());
 		
 		CyAttributes nodeAttributes = Cytoscape.getNodeAttributes();
 		final int levels = this.model.getProperties().get(Model.Properties.NUMBER_OF_LEVELS).as(Integer.class); //at this point, all levels have already been rescaled to the maximum (= the number of levels of the model), so we use it as a reference for the number of levels to show on the network nodes 
@@ -214,21 +294,21 @@ public class InatResultPanel extends JPanel implements ChangeListener, GraphScal
 	 */
 	@Override
 	public void scaleChanged(Scale newScale) {
-		int value = this.slider.getValue(),
-			max = (int)Math.round(newScale.getMaxX()),
-			min = (int)Math.round(newScale.getMinX());
-		this.slider.setMinimum(min);
-		this.slider.setMaximum(max);
-		this.slider.setMajorTickSpacing(max / 10);
-		this.slider.setMinorTickSpacing(max / 100);
-		this.slider.setLabelTable(this.slider.createStandardLabels(this.slider.getMajorTickSpacing()));
-		this.slider.validate();
-		if (value > max) {
-			this.slider.setValue(max);
+		this.minValueOnGraph = newScale.getMinX();
+		this.maxValueOnGraph = newScale.getMaxX();
+		this.scaleForConcentration = this.maxValueOnGraph / this.scale;
+		
+		Hashtable<Integer, JLabel> labels = new Hashtable<Integer, JLabel>();
+		DecimalFormat formatter = new DecimalFormat("0.###");
+		int nLabels = 10;
+		double graphWidth = this.maxValueOnGraph - this.minValueOnGraph;
+		for (int i=0;i<=nLabels;i++) {
+			double val = this.minValueOnGraph + 1.0 * i / nLabels * graphWidth;
+			String valStr = formatter.format(val);
+			labels.put((int)Math.round(1.0 * i / nLabels * slider.getMaximum()), new JLabel(valStr));
 		}
-		if (value < min) {
-			this.slider.setValue(min);
-		}
+		this.slider.setLabelTable(labels);
+		stateChanged(null); //Note that we don't use that parameter, so I can also call the function with null
 	}
 	
 	public void saveSimulationData(File outputFile) {
@@ -275,8 +355,7 @@ public class InatResultPanel extends JPanel implements ChangeListener, GraphScal
 	 * @param cytoPanel
 	 */
 	public void addToPanel(final CytoPanel cytoPanel) {
-		
-		final JPanel container = new JPanel(new BorderLayout(2, 2));
+		container = new JPanel(new BorderLayout(2, 2));
 		container.add(this, BorderLayout.CENTER);
 		JPanel buttons = new JPanel(new FlowLayout()); //new GridLayout(2, 2, 2, 2));
 		
@@ -309,12 +388,7 @@ public class InatResultPanel extends JPanel implements ChangeListener, GraphScal
 				if (newTitle == null) {
 					return;
 				}
-				title = newTitle;
-				int currentIdx = cytoPanel.getSelectedIndex();
-				cytoPanel.remove(currentIdx);
-				cytoPanel.add(title, null, container, newTitle, currentIdx);
-				cytoPanel.setSelectedIndex(currentIdx);
-				resetDivider();
+				setTitle(newTitle);
 			}
 		});
 		
@@ -343,6 +417,19 @@ public class InatResultPanel extends JPanel implements ChangeListener, GraphScal
 		this.myIndex = cytoPanel.getCytoPanelComponentCount() - 1;
 		cytoPanel.setSelectedIndex(this.myIndex);
 		resetDivider();
+	}
+	
+	public void setTitle(String newTitle) {
+		title = newTitle;
+		int currentIdx = fCytoPanel.getSelectedIndex();
+		fCytoPanel.remove(currentIdx);
+		fCytoPanel.add(title, null, container, newTitle, currentIdx);
+		fCytoPanel.setSelectedIndex(currentIdx);
+		resetDivider();
+	}
+	
+	public String getTitle() {
+		return this.title;
 	}
 	
 	private void differenceButtonPressed(String caption) {
@@ -412,8 +499,8 @@ public class InatResultPanel extends JPanel implements ChangeListener, GraphScal
 	}
 
 	@Override
-	public void onComponentSelected(int idx) {
-		if (idx == myIndex) {
+	public void onComponentSelected(int arg0) {
+		if (arg0 == myIndex) {
 			VisualMappingManager vizMap = Cytoscape.getVisualMappingManager();
 			if (vizMapName != null) {
 				//CalculatorCatalog visualStyleCatalog = vizMap.getCalculatorCatalog();

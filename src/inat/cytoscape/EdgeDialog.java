@@ -33,6 +33,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JSlider;
+import javax.swing.JTextPane;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
@@ -122,7 +123,12 @@ public class EdgeDialog extends JDialog {
 		}
 
 		this.setLayout(new BorderLayout(2, 2));
-
+		
+		final JTextPane description = new JTextPane();
+		if (edgeAttrib.hasAttribute(edge.getIdentifier(), Model.Properties.DESCRIPTION)) {
+			description.setText(edgeAttrib.getStringAttribute(edge.getIdentifier(), Model.Properties.DESCRIPTION));
+		}
+		
 		JPanel values = new JPanel(new GridLayout(1, 2, 2, 2));
 		final Box boxScenario = new Box(BoxLayout.X_AXIS);
 		JPanel controls = new JPanel(new FlowLayout(FlowLayout.RIGHT));
@@ -285,6 +291,7 @@ public class EdgeDialog extends JDialog {
 					edgeAttrib.setAttribute(edge.getIdentifier(), SCENARIO, comboScenario.getSelectedIndex());
 					edgeAttrib.setAttribute(edge.getIdentifier(), INCREMENT, ((positiveIncrement.isSelected())?1:-1));
 					edgeAttrib.setAttribute(edge.getIdentifier(), Model.Properties.OUTPUT_REACTANT, edge.getTarget().getIdentifier());
+					edgeAttrib.setAttribute(edge.getIdentifier(), Model.Properties.DESCRIPTION, description.getText());
 					
 					Cytoscape.firePropertyChange(Cytoscape.ATTRIBUTES_CHANGED, null, null);
 					
@@ -294,6 +301,8 @@ public class EdgeDialog extends JDialog {
 		
 		
 		values.add(boxScenario);
+		//values.add(new LabelledField("Description", description));
+		
 
 
 		controls.add(new JButton(new AbstractAction(CANCEL) {
