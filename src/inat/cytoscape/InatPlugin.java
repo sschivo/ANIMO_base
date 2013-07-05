@@ -205,7 +205,7 @@ public class InatPlugin extends CytoscapePlugin {
 		computeAvgStdDev.setSelected(true);
 		computeAvgStdDev.setToolTipText(computeAvgStdDev.getText());
 		overlayPlot.setToolTipText("Plot all run results one above the other");
-		final JFormattedTextField timeTo = new JFormattedTextField(240);
+		final JFormattedTextField timeTo = new JFormattedTextField(120);
 		final JFormattedTextField nSimulationRuns = new JFormattedTextField(10);
 		final JTextField smcFormula = new JTextField("Pr[<=50](<> MK2 > 50)");
 		timeTo.setToolTipText("Plot activity levels up to this time point (real-life MINUTES).");

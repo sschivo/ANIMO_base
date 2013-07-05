@@ -401,7 +401,15 @@ public class InatResultPanel extends JPanel implements ChangeListener, GraphScal
 		});
 		
 		buttons.add(changeTitle);
-		buttons.add(differenceButton);
+		final XmlConfiguration configuration = InatBackend.get().configuration();
+		String areWeTheDeveloperStr = configuration.get(XmlConfiguration.DEVELOPER_KEY);
+		boolean areWeTheDeveloper = false;
+		if (areWeTheDeveloperStr != null) {
+			areWeTheDeveloper = Boolean.parseBoolean(areWeTheDeveloperStr);
+		}
+		if (areWeTheDeveloper) {
+			buttons.add(differenceButton);
+		}
 		if (!isDifference) { //The differences are not saved (for the moment)
 			buttons.add(save);
 		}
