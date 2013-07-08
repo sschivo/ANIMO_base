@@ -20,6 +20,7 @@ import cytoscape.visual.NodeShape;
 import cytoscape.visual.VisualMappingManager;
 import cytoscape.visual.VisualPropertyType;
 import cytoscape.visual.VisualStyle;
+import cytoscape.visual.calculators.Calculator;
 import cytoscape.visual.mappings.DiscreteMapping;
 import cytoscape.visual.mappings.ObjectMapping;
 
@@ -38,25 +39,35 @@ public class ShapesLegend extends JPanel {
 		DiscreteMapping shapesMap = null,
 						widthsMap = null,
 						heightsMap = null;
-		Vector<ObjectMapping> mappings = nac.getCalculator(VisualPropertyType.NODE_SHAPE).getMappings();
-		for (ObjectMapping om : mappings) {
-			if (om instanceof DiscreteMapping) {
-				shapesMap = (DiscreteMapping)om;
-				break;
+		Vector<ObjectMapping> mappings;
+		Calculator calc = nac.getCalculator(VisualPropertyType.NODE_SHAPE);
+		if (calc != null) {
+			mappings = calc.getMappings();
+			for (ObjectMapping om : mappings) {
+				if (om instanceof DiscreteMapping) {
+					shapesMap = (DiscreteMapping)om;
+					break;
+				}
 			}
 		}
-		mappings = nac.getCalculator(VisualPropertyType.NODE_WIDTH).getMappings();
-		for (ObjectMapping om : mappings) {
-			if (om instanceof DiscreteMapping) {
-				widthsMap = (DiscreteMapping)om;
-				break;
+		calc = nac.getCalculator(VisualPropertyType.NODE_WIDTH);
+		if (calc != null) {
+			mappings = calc.getMappings();
+			for (ObjectMapping om : mappings) {
+				if (om instanceof DiscreteMapping) {
+					widthsMap = (DiscreteMapping)om;
+					break;
+				}
 			}
 		}
-		mappings = nac.getCalculator(VisualPropertyType.NODE_HEIGHT).getMappings();
-		for (ObjectMapping om : mappings) {
-			if (om instanceof DiscreteMapping) {
-				heightsMap = (DiscreteMapping)om;
-				break;
+		calc = nac.getCalculator(VisualPropertyType.NODE_HEIGHT);
+		if (calc != null) {
+			mappings = calc.getMappings();
+			for (ObjectMapping om : mappings) {
+				if (om instanceof DiscreteMapping) {
+					heightsMap = (DiscreteMapping)om;
+					break;
+				}
 			}
 		}
 		if (shapesMap != null && widthsMap != null && heightsMap != null) {

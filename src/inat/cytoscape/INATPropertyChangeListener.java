@@ -390,33 +390,7 @@ public class INATPropertyChangeListener implements PropertyChangeListener {
 			mc.addPoint(1.0, new BoundaryRangeValues(upperBound, upperBound, upperBound));*/
 			mc.setInterpolator(new LinearNumberToColorInterpolator());
 			calco = new GenericNodeCustomGraphicCalculator(myVisualStyleName + "Mapping_for_the_current_activity_level_of_nodes", mc, VisualPropertyType.NODE_FILL_COLOR);
-//			ChangeListener listener = new ChangeListener() {
-//				@Override
-//				public void stateChanged(ChangeEvent e) {
-//					VisualMappingManager vizMap = Cytoscape.getVisualMappingManager();
-//					VisualStyle visualStyle = vizMap.getVisualStyle();
-//					NodeAppearanceCalculator nac = visualStyle.getNodeAppearanceCalculator();
-//					Vector<ObjectMapping> mappings = nac.getCalculator(VisualPropertyType.NODE_FILL_COLOR).getMappings();
-//					for (ObjectMapping om : mappings) {
-//						if (!(om instanceof ContinuousMapping)) continue;
-//						ContinuousMapping mapping = (ContinuousMapping)om;
-//						List<ContinuousMappingPoint> points = mapping.getAllPoints();
-//						float fractions[] = new float[points.size()];
-//						Color colors[] = new Color[points.size()];
-//						
-//						int i = 0;
-//						for (ContinuousMappingPoint point : points) {
-//							fractions[fractions.length - 1 - i] = 1 - (float)point.getValue().doubleValue();
-//							colors[colors.length - 1 - i] = (Color)point.getRange().equalValue;
-//							i++;
-//						}
-//						legendColors.setParameters(fractions, colors);
-//					}
-//				}
-//			};
-//			calco.addChangeListener(listener);
 			nac.setCalculator(calco);
-//			mc.addChangeListener(listener);
 			
 			
 			//legendColors.setParameters(new float[]{1 - 1, 1 - 2/3.0f, 1 - 1/3.0f, 1 - 0}, new Color[]{Color.WHITE, new Color(255, 255, 0), new Color(204, 0, 0), Color.BLACK});
@@ -493,6 +467,7 @@ public class INATPropertyChangeListener implements PropertyChangeListener {
 			//differenceVisualStyle.setName(InatPlugin.TAB_NAME + "_" + currentNetworkView.getIdentifier() + "_Diff");
 			nac = differenceVisualStyle.getNodeAppearanceCalculator();
 			nac.removeCalculator(VisualPropertyType.NODE_FILL_COLOR);
+			//System.err.println("Costruisco il nuovo node fill color scale");
 			Color lowerBound1 = new Color(204, 0, 0),
 				  middleBound1 = new Color(255, 255, 255),
 				  upperBound1 = new Color(0, 204, 0);
@@ -515,27 +490,9 @@ public class INATPropertyChangeListener implements PropertyChangeListener {
 		visualStyleCatalog.removeVisualStyle("default");
 		visualStyleCatalog.addVisualStyle(new VisualStyle(myVisualStyle, "default"));
 		
-		NodeAppearanceCalculator calco = myVisualStyle.getNodeAppearanceCalculator();
-		try {
-			ShapesListener shapesListener = getShapesListener();
-			calco.getCalculator(VisualPropertyType.NODE_SHAPE).addChangeListener(shapesListener);
-			calco.getCalculator(VisualPropertyType.NODE_WIDTH).addChangeListener(shapesListener);
-			calco.getCalculator(VisualPropertyType.NODE_HEIGHT).addChangeListener(shapesListener);
-			//shapesListener.stateChanged(new ChangeEvent(calco));
-		} catch (ClassCastException ex) {
-			//Just to avoid dying abruptly if the user changed the mapping to something else and we cannot represent it as a type->shape discrete mapping anymore
-		}
-		try {
-			final Calculator colorCalculator = calco.getCalculator(VisualPropertyType.NODE_FILL_COLOR);
-			final ContinuousMapping colorsMapping = (ContinuousMapping)colorCalculator.getMapping(0);
-			ColorsListener colorsListener = getColorsListener();
-			colorCalculator.addChangeListener(colorsListener);
-			colorsMapping.addChangeListener(colorsListener);
-			colorsMapping.fireStateChanged();
-			vizMap.addChangeListener(colorsListener);
-		} catch (ClassCastException ex) {
-			//as before: avoid possible problems in case the mapping was changed to something not Continuous
-		}
+		legendColors.updateFromSettings();
+		legendShapes.updateFromSettings();
+		
 	}
 	
 	
@@ -637,8 +594,8 @@ public class INATPropertyChangeListener implements PropertyChangeListener {
 	private ShapesListener shapesListener = null;
 	
 	public ColorsListener getColorsListener() {
-		if (colorsListener == null) {
-			return colorsListener = new ColorsListener();
+		if (this.colorsListener == null) {
+			this.colorsListener = new ColorsListener();
 		}
 		return this.colorsListener;
 	}

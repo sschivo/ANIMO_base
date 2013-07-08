@@ -21,6 +21,7 @@ import cytoscape.visual.NodeAppearanceCalculator;
 import cytoscape.visual.VisualMappingManager;
 import cytoscape.visual.VisualPropertyType;
 import cytoscape.visual.VisualStyle;
+import cytoscape.visual.calculators.Calculator;
 import cytoscape.visual.mappings.ContinuousMapping;
 import cytoscape.visual.mappings.ObjectMapping;
 import cytoscape.visual.mappings.continuous.ContinuousMappingPoint;
@@ -65,7 +66,9 @@ public class ColorsLegend extends JPanel {
 		VisualMappingManager vizMap = Cytoscape.getVisualMappingManager();
 		VisualStyle visualStyle = vizMap.getVisualStyle();
 		NodeAppearanceCalculator nac = visualStyle.getNodeAppearanceCalculator();
-		Vector<ObjectMapping> mappings = nac.getCalculator(VisualPropertyType.NODE_FILL_COLOR).getMappings();
+		Calculator calc = nac.getCalculator(VisualPropertyType.NODE_FILL_COLOR);
+		if (calc == null) return; //If there is nothing associated to the node color, we do nothing
+		Vector<ObjectMapping> mappings = calc.getMappings();
 		for (ObjectMapping om : mappings) {
 			if (!(om instanceof ContinuousMapping)) continue;
 			ContinuousMapping mapping = (ContinuousMapping)om;
@@ -94,6 +97,7 @@ public class ColorsLegend extends JPanel {
 			}
 			this.setParameters(fractions, colors);
 		}
+		this.repaint();
 	}
 	
 	public void setParameters(float[] fractions, Color[] colors) {
