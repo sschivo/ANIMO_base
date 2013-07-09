@@ -1,9 +1,12 @@
 package inat.cytoscape;
 
 import giny.model.Node;
+import inat.InatBackend;
 import inat.model.Model;
+import inat.util.XmlConfiguration;
 
 import java.awt.Dialog;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -23,6 +26,7 @@ import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
+import javax.swing.JScrollPane;
 import javax.swing.JSlider;
 import javax.swing.JTextField;
 import javax.swing.JTextPane;
@@ -232,11 +236,24 @@ public class NodeDialog extends JDialog {
 		this.add(plottedBox, new GridBagConstraints(1, 3, 1, 1, 0.5, 0.0, GridBagConstraints.LINE_END, GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
 		//this.add(optionBoxes, BorderLayout.EAST);
 		
+		final XmlConfiguration configuration = InatBackend.get().configuration();
+		String areWeTheDeveloperStr = configuration.get(XmlConfiguration.DEVELOPER_KEY);
+		boolean areWeTheDeveloper = false;
+		if (areWeTheDeveloperStr != null) {
+			areWeTheDeveloper = Boolean.parseBoolean(areWeTheDeveloperStr);
+		}
 		final JTextPane description = new JTextPane();
+		JScrollPane descriptionScrollPane = new JScrollPane(description);
+		descriptionScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+		descriptionScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+		description.setPreferredSize(new Dimension(400, 100));
+		description.setMinimumSize(new Dimension(150, 50));
 		if (nodeAttributes.hasAttribute(node.getIdentifier(), Model.Properties.DESCRIPTION)) {
 			description.setText(nodeAttributes.getStringAttribute(node.getIdentifier(), Model.Properties.DESCRIPTION));
 		}
-		//this.add(new LabelledField("Description", description), new GridBagConstraints(0, 4, 1, 1, 1.0, 0.25, GridBagConstraints.CENTER, GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+		if (areWeTheDeveloper) {
+			this.add(new LabelledField("Description", descriptionScrollPane), new GridBagConstraints(0, 4, 2, 1, 1.0, 1.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+		}
 		
 		JPanel controls = new JPanel(new FlowLayout(FlowLayout.RIGHT));
 		controls.add(new JButton(new AbstractAction("Save") {
@@ -281,6 +298,10 @@ public class NodeDialog extends JDialog {
 			}
 		}));
 
-		this.add(controls, new GridBagConstraints(1, 4, 1, 2, 1.0, 0.0, GridBagConstraints.LINE_END, GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0)); //BorderLayout.SOUTH);
+		int yPos = 4;
+		if (areWeTheDeveloper) {
+			yPos = 5;
+		}
+		this.add(controls, new GridBagConstraints(1, yPos, 1, 2, 1.0, 0.0, GridBagConstraints.LINE_END, GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0)); //BorderLayout.SOUTH);
 	}
 }

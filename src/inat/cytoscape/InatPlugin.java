@@ -16,6 +16,7 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.beans.PropertyChangeSupport;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.PrintStream;
@@ -80,10 +81,13 @@ public class InatPlugin extends CytoscapePlugin {
 			p.add(TAB_NAME, this.setupPanel(this));
 			
 			INATPropertyChangeListener pcl = new INATPropertyChangeListener(legendColors, legendShapes);
-			Cytoscape.getPropertyChangeSupport().addPropertyChangeListener(Cytoscape.NETWORK_CREATED, pcl); //Add all visual mappings
-			Cytoscape.getPropertyChangeSupport().addPropertyChangeListener(Cytoscape.NETWORK_LOADED, pcl); //Make arrows "smooth"
-			Cytoscape.getPropertyChangeSupport().addPropertyChangeListener(CytoscapeDesktop.NETWORK_VIEW_CREATED, pcl); //Add right-click menus
-			Cytoscape.getPropertyChangeSupport().addPropertyChangeListener(Cytoscape.NETWORK_MODIFIED, pcl); //Add/remove nodes
+			PropertyChangeSupport pcs = Cytoscape.getPropertyChangeSupport();
+			pcs.addPropertyChangeListener(Cytoscape.NETWORK_CREATED, pcl); //Add all visual mappings
+			pcs.addPropertyChangeListener(Cytoscape.NETWORK_LOADED, pcl); //Make arrows "smooth"
+			pcs.addPropertyChangeListener(CytoscapeDesktop.NETWORK_VIEW_CREATED, pcl); //Add right-click menus
+			pcs.addPropertyChangeListener(Cytoscape.NETWORK_MODIFIED, pcl); //Add/remove nodes
+			pcs.addPropertyChangeListener(Cytoscape.SESSION_LOADED, pcl); //Reset the tab to ANIMO when we load a new session
+			
 
 			colorsListener = pcl.getColorsListener();
 			shapesListener = pcl.getShapesListener();

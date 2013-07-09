@@ -3,8 +3,10 @@ package inat.cytoscape;
 import giny.model.Edge;
 import giny.model.Node;
 import giny.view.NodeView;
+import inat.InatBackend;
 import inat.model.Model;
 import inat.model.Scenario;
+import inat.util.XmlConfiguration;
 
 import java.awt.BorderLayout;
 import java.awt.Component;
@@ -32,6 +34,7 @@ import javax.swing.JFormattedTextField;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
+import javax.swing.JScrollPane;
 import javax.swing.JSlider;
 import javax.swing.JTextPane;
 import javax.swing.event.ChangeEvent;
@@ -124,8 +127,22 @@ public class EdgeDialog extends JDialog {
 
 		this.setLayout(new BorderLayout(2, 2));
 		
+		final XmlConfiguration configuration = InatBackend.get().configuration();
+		String areWeTheDeveloperStr = configuration.get(XmlConfiguration.DEVELOPER_KEY);
+		final boolean areWeTheDeveloper;
+		if (areWeTheDeveloperStr != null) {
+			areWeTheDeveloper = Boolean.parseBoolean(areWeTheDeveloperStr);
+		} else {
+			areWeTheDeveloper = false;
+		}
+		
 		final JTextPane description = new JTextPane();
-		if (edgeAttrib.hasAttribute(edge.getIdentifier(), Model.Properties.DESCRIPTION)) {
+		JScrollPane descriptionScrollPane = new JScrollPane(description);
+		descriptionScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+		descriptionScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+		description.setPreferredSize(new Dimension(400, 100));
+		description.setMinimumSize(new Dimension(150, 50));
+		if (areWeTheDeveloper && edgeAttrib.hasAttribute(edge.getIdentifier(), Model.Properties.DESCRIPTION)) {
 			description.setText(edgeAttrib.getStringAttribute(edge.getIdentifier(), Model.Properties.DESCRIPTION));
 		}
 		
@@ -293,18 +310,24 @@ public class EdgeDialog extends JDialog {
 					edgeAttrib.setAttribute(edge.getIdentifier(), SCENARIO, comboScenario.getSelectedIndex());
 					edgeAttrib.setAttribute(edge.getIdentifier(), INCREMENT, ((positiveIncrement.isSelected())?1:-1));
 					edgeAttrib.setAttribute(edge.getIdentifier(), Model.Properties.OUTPUT_REACTANT, edge.getTarget().getIdentifier());
-					edgeAttrib.setAttribute(edge.getIdentifier(), Model.Properties.DESCRIPTION, description.getText());
+					if (areWeTheDeveloper) {
+						edgeAttrib.setAttribute(edge.getIdentifier(), Model.Properties.DESCRIPTION, description.getText());
+					}
 					
 					Cytoscape.firePropertyChange(Cytoscape.ATTRIBUTES_CHANGED, null, null);
 					
 					EdgeDialog.this.dispose();
 				}
 			}));
-		
-		
-		values.add(boxScenario);
-		//values.add(new LabelledField("Description", description));
-		
+			
+		if (areWeTheDeveloper) {
+			Box boxScenarioDescription = new Box(BoxLayout.Y_AXIS);
+			boxScenarioDescription.add(boxScenario);
+			boxScenarioDescription.add(new LabelledField("Description", descriptionScrollPane));
+			values.add(boxScenarioDescription);
+		} else {
+			values.add(boxScenario);
+		}
 
 
 		controls.add(new JButton(new AbstractAction(CANCEL) {
