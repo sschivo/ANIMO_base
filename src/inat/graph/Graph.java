@@ -54,6 +54,7 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 	public static final String AUTOGRAPH_WINDOW_TITLE = "AutoGraph", //If we are a window, this will be our (lame) title
 								OPEN_LABEL = "Add data from CSV...",
 								SAVE_LABEL = "Save as PNG...",
+								RENDER_TO_JPG_LABEL = "Render to JPG...",
 								EXPORT_VISIBLE_LABEL = "Export visible as CSV...",
 								CLEAR_LABEL = "Clear Data",
 								INTERVAL_LABEL = "Graph interval...",
@@ -115,6 +116,7 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 		popupMenu = new JPopupMenu();
 		JMenuItem open = new JMenuItem(OPEN_LABEL);
 		JMenuItem save = new JMenuItem(SAVE_LABEL);
+		JMenuItem renderJpg = new JMenuItem(RENDER_TO_JPG_LABEL);
 		JMenuItem export = new JMenuItem(EXPORT_VISIBLE_LABEL);
 		JMenuItem clear = new JMenuItem(CLEAR_LABEL);
 		JMenuItem newInterval = new JMenuItem(INTERVAL_LABEL);
@@ -126,6 +128,7 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 		JMenuItem showThinAxes = new JMenuItem(SHOW_THIN_AXES);
 		open.addActionListener(this);
 		save.addActionListener(this);
+		renderJpg.addActionListener(this);
 		export.addActionListener(this);
 		clear.addActionListener(this);
 		newInterval.addActionListener(this);
@@ -137,6 +140,9 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 		showThinAxes.addActionListener(this);
 		popupMenu.add(open);
 		popupMenu.add(save);
+		if (areWeTheDeveloper) {
+			popupMenu.add(renderJpg);
+		}
 		popupMenu.add(export);
 		popupMenu.add(clear);
 		popupMenu.add(newInterval);
@@ -305,6 +311,13 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 	}
 	
 	/*
+	 * Make sure that the next time the graph draws, it actually draws everything from scratch
+	 */
+	public void ensureRedraw() {
+		needRedraw = true;
+	}
+	
+	/*
 	 * The available colors for the Series.
 	 * As we see also with the other following functions, we normally cycle through
 	 * colors when drawing a bunch of series. If the user has set a particular color for
@@ -377,7 +390,7 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 	/*
 	 * Draw axes, arrow points, ticks and label X axis with the label found in the first column of the CSV datafile
 	 */
-	public void drawAxes(Graphics2D g, Rectangle bounds) {
+	public void drawAxes(Graphics2D g, Rectangle bounds, Rectangle pictureBounds) {
 		FontMetrics fm = g.getFontMetrics();
 		int leftBorder = fm.stringWidth("" + (int)scale.getMaxY());
 		if (yLabel != null) {
@@ -390,10 +403,10 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 		}
 		
 		g.setPaint(BACKGROUND_COLOR);
-		g.fillRect(0, 0, bounds.x + leftBorder, (int)this.getBounds().getHeight());
-		g.fillRect(0, bounds.height + bounds.y, (int)this.getBounds().getWidth(), (int)this.getBounds().getHeight()-bounds.height-bounds.y);
-		g.fillRect(0, 0, (int)this.getBounds().getWidth(), bounds.y - 10 * SCALA);
-		g.fillRect(bounds.x + bounds.width, 0, (int)this.getBounds().getWidth()-bounds.x-bounds.width, (int)this.getBounds().getHeight()); 
+		g.fillRect(0, 0, bounds.x + leftBorder, (int)pictureBounds.getHeight());
+		g.fillRect(0, bounds.height + bounds.y, (int)pictureBounds.getWidth(), (int)pictureBounds.getHeight()-bounds.height-bounds.y);
+		g.fillRect(0, 0, (int)pictureBounds.getWidth(), bounds.y - 10 * SCALA);
+		g.fillRect(bounds.x + bounds.width, 0, (int)pictureBounds.getWidth()-bounds.x-bounds.width, (int)pictureBounds.getHeight());
 		
 		g.setPaint(FOREGROUND_COLOR);
 		
@@ -495,6 +508,7 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 				g.drawString(label, 0, 0);
 				g.setTransform(new AffineTransform());
 			}
+			
 		}
 		
 	}
@@ -611,11 +625,15 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 		g.setStroke(oldStroke);
 	}
 	
-	public void paint(Graphics g1) {
+	public void paint(Graphics g) {
+		paint(g, this.getWidth(), this.getHeight());
+	}
+	
+	public void paint(Graphics g1, int areaWidth, int areaHeight) {
 		Graphics2D g = (Graphics2D)g1;
 		Graphics2D gBackground;
 		if (needRedraw) {
-			bufferedImage = new BufferedImage(this.getWidth(), this.getHeight(), BufferedImage.TYPE_INT_RGB);
+			bufferedImage = new BufferedImage(areaWidth, areaHeight, BufferedImage.TYPE_INT_RGB);
 			gBackground = bufferedImage.createGraphics();
 		} else {
 			gBackground = (Graphics2D)g1;
@@ -632,7 +650,7 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 		
 		//g.clearRect(0, 0, this.getWidth(), this.getHeight());
 		gBackground.setPaint(BACKGROUND_COLOR);
-		Rectangle bounds = new Rectangle(this.getBounds());
+		Rectangle bounds = new Rectangle(0, 0, areaWidth, areaHeight);
 		bounds.x = bounds.y = 0; //we don't care where we are inside our containing object: we only need the width and height of the drawing area. The starting x and y are of course 0.
 		if (needRedraw) {
 			gBackground.fill(bounds);
@@ -683,7 +701,7 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 		
 		if (needRedraw) {
 			bounds.setBounds(bounds.x - leftBorder, bounds.y, bounds.width + (leftBorder + rightBorder), bounds.height);
-			drawAxes(gBackground, bounds);
+			drawAxes(gBackground, bounds, new Rectangle(0, 0, areaWidth, areaHeight));
 			bounds.setBounds(bounds.x + leftBorder, bounds.y, bounds.width - (leftBorder + rightBorder), bounds.height);
 		}
 		
@@ -692,7 +710,7 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 		}
 		
 		//g.drawImage(bufferedImage, 0, 0, this);
-		g.drawImage(bufferedImage, 0, 0, this.getWidth(), this.getHeight(), null);
+		g.drawImage(bufferedImage, 0, 0, areaWidth, areaHeight, null);
 		
 		if (xRedLine > 0) {
 			g.setPaint(RED_LINE_COLOR);
@@ -702,7 +720,7 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 			g.setStroke(olStroke);
 		}
 		
-		if (legendBounds == null || !customLegendPosition) {
+		if (legendBounds == null || !customLegendPosition || areaWidth != this.getWidth() || areaHeight != this.getHeight()) {
 			int nGraphs = 0;
 			for (Series s : data) {
 				if (!s.isSlave()) nGraphs++;
@@ -719,78 +737,12 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 		}
 
 		if (showSize) {
-			g.drawString("(" + this.getWidth() + ", " + this.getHeight() + ")", 0, fm.getMaxAscent());
+			g.drawString("(" + areaWidth + ", " + areaHeight + ")", 0, fm.getMaxAscent());
 		}
 		g.setStroke(oldStroke);
 		g.setFont(oldFont);
 	}
 	
-	/*public void paint(Graphics g1) {
-		Graphics2D g = (Graphics2D)g1;
-		Font oldFont = g.getFont();
-		Font newFont = new Font(oldFont.getName(), oldFont.getStyle(), oldFont.getSize() * SCALA);
-		g.setFont(newFont);
-		if (!movingLegend) {
-			g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-		}
-		//g.clearRect(0, 0, this.getWidth(), this.getHeight());
-		g.setPaint(BACKGROUND_COLOR);
-		Rectangle bounds = new Rectangle(this.getBounds());
-		bounds.x = bounds.y = 0; //we don't care where we are inside our containing object: we only need the width and height of the drawing area. The starting x and y are of course 0.
-		g.fill(bounds);
-		FontMetrics fm = g.getFontMetrics();
-		maxLabelLength = 0;
-		bounds.setBounds(bounds.x + BORDER_X * SCALA, bounds.y + BORDER_Y * SCALA, bounds.width - 2 * BORDER_X * SCALA, bounds.height - 2 * BORDER_Y * SCALA);
-		
-		resetCol();
-		Stroke oldStroke = g.getStroke();
-		g.setStroke(new BasicStroke(2 * SCALA));
-		Stroke fineStroke = new BasicStroke(1 * SCALA);
-		for (Series series : data) {
-			if (series.isSlave()) continue; //first plot all masters, then all slaves: this way we are sure that the master has set all it needs and the slave can lazily copy the same settings
-			
-			if (series.getColor() == null || series.getChangeColor()) {
-				if (!series.getChangeColor()) {
-					g.setPaint(nextCol());
-				} else {
-					g.setPaint(randomCol());
-					series.setChangeColor(false);
-				}
-			} else {
-				g.setPaint(series.getColor());
-			}
-			series.plot(g, bounds);
-			if (series.isMaster()) {
-				series.getSlave().plot(g, bounds);
-			}
-			double labelLength = fm.stringWidth(series.getName());
-			if (labelLength > maxLabelLength) {
-				maxLabelLength = labelLength;
-			}
-		}
-		
-		if (legendBounds == null || !customLegendPosition) {
-			int nGraphs = 0;
-			for (Series s : data) {
-				if (!s.isSlave()) nGraphs++;
-			}
-			legendBounds = new Rectangle(bounds.width - 35 * SCALA - (int)maxLabelLength, bounds.y + 20 * SCALA, 35 * SCALA + (int)maxLabelLength, 20 * SCALA * nGraphs);
-		}
-		g.setStroke(fineStroke);
-		if (showLegend) {
-			drawLegend(g, legendBounds);
-		}
-		
-		
-		drawAxes(g, bounds);
-		
-		if (drawingZoomRectangle) {
-			drawZoomRectangle(g);
-		}
-
-		g.setStroke(oldStroke);
-		g.setFont(oldFont);
-	}*/
 	
 	/*
 	 * Add a new set of Series from a given LevelResult, marking all as shown
@@ -1421,6 +1373,8 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 				}
 			} else if (menu.getText().equals(SAVE_LABEL)) {
 				FileUtils.saveToPNG(this);
+			} else if (menu.getText().equals(RENDER_TO_JPG_LABEL)) {
+				FileUtils.renderToJPG(this);
 			} else if (menu.getText().equals(EXPORT_VISIBLE_LABEL)) {
 				String fileName = FileUtils.save(CSV_FILE_EXTENSION, CSV_FILE_DESCRIPTION, this);
 				if (fileName != null) {
