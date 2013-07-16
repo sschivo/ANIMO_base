@@ -62,6 +62,7 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 								ZOOM_EXTENTS_LABEL = "Zoom extents",
 								CLOSE_LABEL = "Close",
 								SHOW_SIZE_LABEL = "Show picture size",
+								SHOW_ZOOM_LEVEL_LABEL = "Show zoom level",
 								SHOW_THIN_AXES = "Show thin axes",
 								SET_Y_LABEL_LABEL = "Set Y label",
 								CSV_FILE_EXTENSION = ".csv",
@@ -86,6 +87,7 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 	private JPopupMenu popupMenu = null;
 	private boolean showLegend = true;
 	private boolean showSize = false;
+	private boolean showZoomLevel = false;
 	private boolean showThinAxes = false;
 	private double maxLabelLength = 0; //used to compute the width of the legend box
 	private Rectangle legendBounds = null; //Where the legend is, and what are its dimensions
@@ -124,6 +126,7 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 		JMenuItem zoomExtents = new JMenuItem(ZOOM_EXTENTS_LABEL);
 		JMenuItem close = new JMenuItem(CLOSE_LABEL);
 		JMenuItem showSizeM = new JMenuItem(SHOW_SIZE_LABEL);
+		JMenuItem showZoomM = new JMenuItem(SHOW_ZOOM_LEVEL_LABEL);
 		JMenuItem setYLabel = new JMenuItem(SET_Y_LABEL_LABEL);
 		JMenuItem showThinAxes = new JMenuItem(SHOW_THIN_AXES);
 		open.addActionListener(this);
@@ -136,6 +139,7 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 		zoomExtents.addActionListener(this);
 		close.addActionListener(this);
 		showSizeM.addActionListener(this);
+		showZoomM.addActionListener(this);
 		setYLabel.addActionListener(this);
 		showThinAxes.addActionListener(this);
 		popupMenu.add(open);
@@ -151,6 +155,7 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 		if (areWeTheDeveloper) {
 			popupMenu.add(setYLabel);
 			popupMenu.add(showSizeM);
+			popupMenu.add(showZoomM);
 			popupMenu.add(showThinAxes);
 		}
 		//popupMenu.addSeparator();
@@ -738,6 +743,9 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 
 		if (showSize) {
 			g.drawString("(" + areaWidth + ", " + areaHeight + ")", 0, fm.getMaxAscent());
+		}
+		if (showZoomLevel) {
+			g.drawString("Zoom: " + SCALA, 0, 2 + 2 * fm.getMaxAscent());
 		}
 		g.setStroke(oldStroke);
 		g.setFont(oldFont);
@@ -1421,6 +1429,9 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 				}
 			} else if (menu.getText().equals(SHOW_SIZE_LABEL)) {
 				showSize = !showSize;
+				this.repaint();
+			} else if (menu.getText().equals(SHOW_ZOOM_LEVEL_LABEL)) {
+				showZoomLevel = !showZoomLevel;
 				this.repaint();
 			} else if (menu.getText().equals(SET_Y_LABEL_LABEL)) {
 				String newLabel;

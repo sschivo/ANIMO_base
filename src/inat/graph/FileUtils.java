@@ -151,6 +151,7 @@ public class FileUtils {
 			Graphics imgGraphics = image.createGraphics();
 			graph.ensureRedraw();
 			graph.paint(imgGraphics, width, height);
+			graph.ensureRedraw();
 			File f = new File(fileName);
 			f.delete();
 			ImageIO.write(image, "jpg", f);
