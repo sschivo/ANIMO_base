@@ -402,11 +402,12 @@ public class INATPropertyChangeListener implements PropertyChangeListener {
 		
 		PassThroughMapping mp;
 		
-		if (nac.getCalculator(VisualPropertyType.NODE_LABEL) == null) {
+		//Looks like Cytoscape normally shows the ID of a node as its label, so we force this to be used anyway.
+		//if (nac.getCalculator(VisualPropertyType.NODE_LABEL) == null) {
 			mp = new PassThroughMapping(String.class, Model.Properties.CANONICAL_NAME);
 			calco = new BasicCalculator(myVisualStyleName + "Mapping_for_node_label", mp, VisualPropertyType.NODE_LABEL);
 			nac.setCalculator(calco);
-		}
+		//}
 		
 		final XmlConfiguration configuration = InatBackend.get().configuration();
 		String areWeTheDeveloperStr = configuration.get(XmlConfiguration.DEVELOPER_KEY);
