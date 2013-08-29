@@ -17,10 +17,10 @@ public class OverlaySeries extends Series {
 	}
 	
 	@Override
-	public void plot(Graphics2D g, Rectangle bounds) {
+	public void plot(Graphics2D g, Rectangle bounds, int SCALA) {
 		myColor = g.getColor();
 		for (Series s : allSeries) {
-			s.plot(g, bounds);
+			s.plot(g, bounds, SCALA);
 		}
 	}
 	

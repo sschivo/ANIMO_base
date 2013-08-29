@@ -689,9 +689,9 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 				} else {
 					gBackground.setPaint(series.getColor());
 				}
-				series.plot(gBackground, bounds);
+				series.plot(gBackground, bounds, SCALA);
 				if (series.isMaster()) {
-					series.getSlave().plot(gBackground, bounds);
+					series.getSlave().plot(gBackground, bounds, SCALA);
 				}
 			}
 			

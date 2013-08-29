@@ -401,15 +401,15 @@ public class InatResultPanel extends JPanel implements ChangeListener, GraphScal
 		});
 		
 		buttons.add(changeTitle);
-		final XmlConfiguration configuration = InatBackend.get().configuration();
-		String areWeTheDeveloperStr = configuration.get(XmlConfiguration.DEVELOPER_KEY);
-		boolean areWeTheDeveloper = false;
-		if (areWeTheDeveloperStr != null) {
-			areWeTheDeveloper = Boolean.parseBoolean(areWeTheDeveloperStr);
-		}
-		if (areWeTheDeveloper) {
+//		final XmlConfiguration configuration = InatBackend.get().configuration();
+//		String areWeTheDeveloperStr = configuration.get(XmlConfiguration.DEVELOPER_KEY);
+//		boolean areWeTheDeveloper = false;
+//		if (areWeTheDeveloperStr != null) {
+//			areWeTheDeveloper = Boolean.parseBoolean(areWeTheDeveloperStr);
+//		}
+//		if (areWeTheDeveloper) {
 			buttons.add(differenceButton);
-		}
+//		}
 		if (!isDifference) { //The differences are not saved (for the moment)
 			buttons.add(save);
 		}
@@ -417,7 +417,9 @@ public class InatResultPanel extends JPanel implements ChangeListener, GraphScal
 		container.add(buttons, BorderLayout.NORTH);
 		
 		
-		cytoPanel.setState(CytoPanelState.DOCK);
+		if (cytoPanel.getState().equals(CytoPanelState.HIDE)) {
+			cytoPanel.setState(CytoPanelState.DOCK); //We show the Results panel if it was hidden.
+		}
 		fCytoPanel = (CytoPanelImp)cytoPanel;
 		cytoPanel.addCytoPanelListener(this);
 		

@@ -87,6 +87,12 @@ public class Scale {
 	public void computeScale(Rectangle bounds) {
 		scaleX = bounds.width / Math.abs(maxX - minX);
 		scaleY = bounds.height / Math.abs(maxY - minY);
+		if (scaleX < 1e-8) {
+			scaleX = 1e-8;
+		}
+		if (scaleY < 1e-8) {
+			scaleY = 1e-8;
+		}
 	}
 	
 }
