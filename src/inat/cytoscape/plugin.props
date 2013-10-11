@@ -13,7 +13,7 @@ pluginName=ANIMO
 pluginDescription=Analysis of Networks with Interactive MOdeling
 
 # Plugin version number, this must be two numbers separated by a decimlal.  Ex. 0.2, 14.03
-pluginVersion=1.37
+pluginVersion=1.38
 
 # Compatible Cytoscape version. If there are more than one version, seperate by ",".
 cytoscapeVersion=2.6,2.7,2.8,2.8.1,2.8.2
@@ -24,7 +24,7 @@ pluginCategory=Analysis
 # -- The following properties are OPTIONAL -- #
 
 # URL to a website that gives more information about your plugin, Ex. http://my-lab-site.org
-projectURL=http://wwwhome.ewi.utwente.nl/~schivos/animo
+projectURL=http://fmt.cs.utwente.nl/tools/animo
 
 # List of authors.  Note each author and institution pair are separated by a : (colon)
 # each additional author institution pair must be separated from other pairs bye a ; (semicolon)

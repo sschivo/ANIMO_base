@@ -9,6 +9,9 @@ import java.awt.Graphics2D;
 import java.awt.Polygon;
 import java.awt.RenderingHints;
 import java.awt.geom.Rectangle2D;
+import java.awt.geom.RoundRectangle2D;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
@@ -27,6 +30,7 @@ import cytoscape.visual.mappings.ObjectMapping;
 public class ShapesLegend extends JPanel {
 	private static final long serialVersionUID = 8963894565747542198L;
 	private DiscreteMapping shapesMap, widthsMap, heightsMap;
+	private List<String> nameOrder = null;
 
 	public ShapesLegend() {
 				
@@ -82,6 +86,14 @@ public class ShapesLegend extends JPanel {
 		this.repaint();
 	}
 	
+	public void setNameOrder(List<String> nameOrder) {
+		this.nameOrder = nameOrder;
+	}
+	
+	public List<String> getNameOrder() {
+		return this.nameOrder;
+	}
+	
 	@SuppressWarnings("unchecked")
 	public void paint(Graphics g1) {
 		if (shapesMap == null || widthsMap == null || heightsMap == null) {
@@ -96,7 +108,7 @@ public class ShapesLegend extends JPanel {
 		FontMetrics fm = g.getFontMetrics();
 		rectangle.y += 10 + fm.getHeight();
 		rectangle.height -= 10 + fm.getHeight();
-		rectangle.x += 1; rectangle.width -= 2; rectangle.y += 1; rectangle.height -= 2; //Otherwise we can't properly see the contours because they would be drawn on a limit that isn't actually there
+		//rectangle.x += 1; rectangle.width -= 2; rectangle.y += 1; rectangle.height -= 2; //Otherwise we can't properly see the contours because they would be drawn on a limit that isn't actually there
 		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 		Font oldFont = g.getFont();
 		g.setFont(oldFont.deriveFont(Font.BOLD));
@@ -110,7 +122,8 @@ public class ShapesLegend extends JPanel {
 		
 		float nodeSpace = rectangle.height / shapes.size();
 		
-		float maxHeight = -1;
+		float maxHeight = -1,
+			  maxWidth = -1;
 		int maxStrLength = -1;
 		for (String moleculeType : heights.keySet()) {
 			Object o = heights.get(moleculeType);
@@ -128,11 +141,29 @@ public class ShapesLegend extends JPanel {
 				maxStrLength = strLen;
 			}
 		}
+		for (String moleculeType : widths.keySet()) {
+			Object o = widths.get(moleculeType);
+			float w = 50.0f; 
+			if (o instanceof Float) {
+				w = (Float)o;
+			} else if (o instanceof Double) {
+				w = new Float((Double)o);
+			}
+			if (w > maxWidth) {
+				maxWidth = w;
+			}
+		}
+		
 		float x = rectangle.x + rectangle.width / 2 - maxStrLength / 2.0f,
 			  y = rectangle.y;
 		
-		for (String moleculeType : shapes.keySet()) {
+		if (nameOrder == null) {
+			nameOrder = new ArrayList<String>();
+			nameOrder.addAll(shapes.keySet());
+		}
+		for (String moleculeType : nameOrder) {
 			NodeShape shape = shapes.get(moleculeType);
+			if (shape == null) continue;
 			float width = 50.0f,
 				  height = 50.0f;
 			Object o1 = widths.get(moleculeType);
@@ -147,14 +178,14 @@ public class ShapesLegend extends JPanel {
 			} else if (o2 instanceof Double) {
 				height = new Float((Double)o2);
 			}
-			float rate = 0.75f * nodeSpace / maxHeight;
+			float rate = 0.85f * nodeSpace / maxHeight;
 			width *= rate;
 			height *= rate;
 			g.setStroke(new BasicStroke(2.0f));
 			switch (shape) {
 				case DIAMOND:
-					int xD[] = new int[]{(int)(x - width / 2), (int)x, (int)(x + width / 2), (int)x},
-						yD[] = new int[]{(int)(y + nodeSpace / 2), (int)(y + nodeSpace / 2 - height / 2), (int)(y + nodeSpace / 2), (int)(y + nodeSpace / 2 + height / 2)};
+					int xD[] = new int[]{(int)Math.round(x - width / 2), (int)Math.round(x), (int)Math.round(x + width / 2), (int)Math.round(x)},
+						yD[] = new int[]{(int)Math.round(y + nodeSpace / 2), (int)Math.round(y + nodeSpace / 2 - height / 2), (int)Math.round(y + nodeSpace / 2), (int)Math.round(y + nodeSpace / 2 + height / 2)};
 					Polygon polygon = new Polygon(xD, yD, xD.length);
 					g.setPaint(Color.DARK_GRAY);
 					g.fillPolygon(polygon);
@@ -162,8 +193,8 @@ public class ShapesLegend extends JPanel {
 					g.drawPolygon(polygon);
 					break;
 				case ELLIPSE:
-					int xE = (int)(x - width / 2),
-						yE = (int)(y + nodeSpace / 2 - height / 2);
+					int xE = (int)Math.round(x - width / 2),
+						yE = (int)Math.round(y + nodeSpace / 2 - height / 2);
 					g.setPaint(Color.DARK_GRAY);
 					g.fillOval(xE, yE, (int)width, (int)height);
 					g.setPaint(Color.BLACK);
@@ -174,10 +205,17 @@ public class ShapesLegend extends JPanel {
 				case OCTAGON:
 					break;
 				case PARALLELOGRAM:
+					int xP[] = new int[]{(int)Math.round(x - width / 2), (int)Math.round(x + width / 4.0), (int)Math.round(x + width / 2), (int)Math.round(x - width / 4.0)},
+						yP[] = new int[]{(int)Math.round(y + nodeSpace / 2 - height / 2), (int)Math.round(y + nodeSpace / 2 - height / 2), (int)Math.round(y + nodeSpace / 2 + height / 2), (int)Math.round(y + nodeSpace / 2 + height / 2)};
+					Polygon parallelogram = new Polygon(xP, yP, xP.length);
+					g.setPaint(Color.DARK_GRAY);
+					g.fillPolygon(parallelogram);
+					g.setPaint(Color.BLACK);
+					g.drawPolygon(parallelogram);
 					break;
 				case RECT:
-					int xR = (int)(x - width / 2),
-						yR = (int)(y + nodeSpace / 2 - height / 2);
+					int xR = (int)Math.round(x - width / 2),
+						yR = (int)Math.round(y + nodeSpace / 2 - height / 2);
 					Rectangle2D.Float rect = new Rectangle2D.Float(xR, yR, width, height);
 					g.setPaint(Color.DARK_GRAY);
 					g.fill(rect);
@@ -187,18 +225,32 @@ public class ShapesLegend extends JPanel {
 				case RECT_3D:
 					break;
 				case ROUND_RECT:
+					int xRR = (int)Math.round(x - width / 2),
+						yRR = (int)Math.round(y + nodeSpace / 2 - height / 2);
+					RoundRectangle2D.Float rectRound = new RoundRectangle2D.Float(xRR, yRR, width, height, width/5, height/5);
+					g.setPaint(Color.DARK_GRAY);
+					g.fill(rectRound);
+					g.setPaint(Color.BLACK);
+					g.draw(rectRound);
 					break;
 				case TRAPEZOID:
 					break;
 				case TRAPEZOID_2:
 					break;
 				case TRIANGLE:
+					int xT[] = new int[]{(int)Math.round(x), (int)Math.round(x + width / 2), (int)Math.round(x - width / 2)},
+						yT[] = new int[]{(int)Math.round(y + nodeSpace / 2 - height / 2), (int)Math.round(y + nodeSpace / 2 + height / 2), (int)Math.round(y + nodeSpace / 2 + height / 2)};
+					Polygon triangle = new Polygon(xT, yT, xT.length);
+					g.setPaint(Color.DARK_GRAY);
+					g.fill(triangle);
+					g.setPaint(Color.BLACK);
+					g.draw(triangle);
 					break;
 				case VEE:
 					break;
 				default: break;
 			}
-			g.drawString(moleculeType, x + rectangle.width /2, y + nodeSpace / 2 + fm.getAscent() / 2.0f);
+			g.drawString(moleculeType, x + (maxWidth + 5) * rate, y + nodeSpace / 2 + fm.getAscent() / 2.0f);//moleculeType, x + rectangle.width /2, y + nodeSpace / 2 + fm.getAscent() / 2.0f);
 			y += nodeSpace;
 		}
 	}

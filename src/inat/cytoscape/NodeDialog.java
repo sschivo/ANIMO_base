@@ -105,7 +105,7 @@ public class NodeDialog extends JDialog {
 		totalLevels.setPaintLabels(true);
 		totalLevels.setPaintTicks(true);
 		if (totalLevels.getMaximum() == 100) {
-			Dictionary labelTable = totalLevels.getLabelTable();
+			Dictionary<Integer, JLabel> labelTable = totalLevels.getLabelTable();
 			labelTable.put(totalLevels.getMaximum(), new JLabel("" + totalLevels.getMaximum()));
 			totalLevels.setLabelTable(labelTable);
 		}
@@ -172,8 +172,8 @@ public class NodeDialog extends JDialog {
 		
 		
 		//Box optionBoxes = new Box(BoxLayout.Y_AXIS);
-		String[] moleculeTypes = new String[]{Model.Properties.TYPE_CYTOKINE, Model.Properties.TYPE_RECEPTOR, Model.Properties.TYPE_KINASE, Model.Properties.TYPE_PHOSPHATASE, Model.Properties.TYPE_TRANSCRIPTION_FACTOR, Model.Properties.TYPE_OTHER};
-		final JComboBox moleculeType = new JComboBox(moleculeTypes);
+		String[] moleculeTypes = new String[]{Model.Properties.TYPE_CYTOKINE, Model.Properties.TYPE_RECEPTOR, Model.Properties.TYPE_KINASE, Model.Properties.TYPE_PHOSPHATASE, Model.Properties.TYPE_TRANSCRIPTION_FACTOR, Model.Properties.TYPE_GENE, Model.Properties.TYPE_MRNA, Model.Properties.TYPE_DUMMY, Model.Properties.TYPE_OTHER};
+		final JComboBox<String> moleculeType = new JComboBox<String>(moleculeTypes);
 		if (nodeAttributes.hasAttribute(node.getIdentifier(), Model.Properties.MOLECULE_TYPE)) {
 			String type = nodeAttributes.getStringAttribute(node.getIdentifier(), Model.Properties.MOLECULE_TYPE);
 			boolean notContained = true;

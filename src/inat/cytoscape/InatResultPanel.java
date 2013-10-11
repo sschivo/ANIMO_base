@@ -452,7 +452,16 @@ public class InatResultPanel extends JPanel implements ChangeListener, GraphScal
 			}
 		} else if (caption.equals(END_DIFFERENCE)) {
 			if (differenceWith != null) {
-				SimpleLevelResult diff = (SimpleLevelResult)this.result.difference(differenceWith.result);
+				Map<String, String> hisMapCytoscapeIDtoModelID = differenceWith.model.getMapCytoscapeIDtoReactantID();
+				//System.err.println("La sua mappa da Cytoscape a Model ID: " + hisMapCytoscapeIDtoModelID);
+				Map<String, String> myMapCytoscapeIDtoModelID = this.model.getMapCytoscapeIDtoReactantID();
+				Map<String, String> myMapModelIDtoCytoscapeID = new HashMap<String, String>();
+				//System.err.println("La mia mappa da Cytoscape a Model ID: " + myMapCytoscapeIDtoModelID);
+				for (String k : myMapCytoscapeIDtoModelID.keySet()) {
+					myMapModelIDtoCytoscapeID.put(myMapCytoscapeIDtoModelID.get(k), k);
+				}
+				//System.err.println("La mia mappa da Model a Cytoscape ID: " + myMapModelIDtoCytoscapeID);
+				SimpleLevelResult diff = (SimpleLevelResult)this.result.difference(differenceWith.result, myMapModelIDtoCytoscapeID, hisMapCytoscapeIDtoModelID);
 				if (diff.isEmpty()) {
 					JOptionPane.showMessageDialog(Cytoscape.getDesktop(), "Error: empty difference. Please contact the developers and send them the current model,\nwith a reference to which simulations were used for the difference.");
 					return;
@@ -462,7 +471,7 @@ public class InatResultPanel extends JPanel implements ChangeListener, GraphScal
 				double maxY = Math.max(this.g.getScale().getMaxY(), differenceWith.g.getScale().getMaxY());
 				Scale scale = newPanel.g.getScale();
 				newPanel.g.setDrawArea((int)scale.getMinX(), (int)scale.getMaxX(), (int)-maxY, (int)maxY); //(int)scale.getMaxY());
-				newPanel.vizMapName = InatPlugin.TAB_NAME + "_Diff";
+				newPanel.vizMapName = InatPlugin.TAB_NAME + "_" + Cytoscape.getCurrentNetworkView().getIdentifier() + "_Diff";
 				if (fCytoPanel != null) {
 					newPanel.addToPanel(fCytoPanel);
 				}

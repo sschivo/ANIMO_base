@@ -64,6 +64,9 @@ public class Model implements Serializable {
 								   TYPE_PHOSPHATASE = "Phosphatase",
 								   TYPE_TRANSCRIPTION_FACTOR = "Transcription factor",
 								   TYPE_OTHER = "Other",
+								   TYPE_MRNA = "mRNA",
+								   TYPE_GENE = "Gene",
+								   TYPE_DUMMY = "Dummy",
 								   REACTANT_NAME = "name", //The name of the reactant (possibly outdated property name)
 								   REACTION_TYPE = "type", //Type of reaction (mono, bi)
 								   SCENARIO_CFG = "SCENARIO_CFG", //The current scenario configuration (scenario index + parameter values) of the reaction
@@ -87,6 +90,7 @@ public class Model implements Serializable {
 	 * The edges in the model.
 	 */
 	private Map<String, Reaction> reactions;
+	private Map<String, String> mapCytoscapeIDtoReactantID = null;
 
 	/**
 	 * The global properties on the model.
@@ -100,6 +104,11 @@ public class Model implements Serializable {
 		this.reactants = new HashMap<String, Reactant>();
 		this.reactions = new HashMap<String, Reaction>();
 		this.properties = new PropertyBag();
+	}
+	
+
+	public void setMapCytoscapeIDtoReactantID(Map<String, String> mapCytoscapeIDtoReactantID) {
+		this.mapCytoscapeIDtoReactantID = mapCytoscapeIDtoReactantID;
 	}
 
 	/**
@@ -168,6 +177,15 @@ public class Model implements Serializable {
 	public Reactant getReactant(String id) {
 		return this.reactants.get(id);
 	}
+	
+	/**
+	 * Given the Cytoscape node id, return the corresponding Reactant in the model
+	 * @param id The Cytoscape node identificator (e.g. node102 etc)
+	 * @return The Reactant as constructed in the current model
+	 */
+	public Reactant getReactantByCytoscapeID(String id) {
+		return this.reactants.get(this.mapCytoscapeIDtoReactantID.get(id));
+	}
 
 	/**
 	 * Returns the properties for this model.
@@ -195,7 +213,11 @@ public class Model implements Serializable {
 	public Collection<Reaction> getReactions() {
 		return Collections.unmodifiableCollection(this.reactions.values());
 	}
+
 	
+	public Map<String, String> getMapCytoscapeIDtoReactantID() {
+		return this.mapCytoscapeIDtoReactantID;
+	}
 	
 	/**
 	 * returns a (deep) copy of this model
@@ -559,7 +581,8 @@ public class Model implements Serializable {
 				nodeAttributes.setAttribute(r.get(CYTOSCAPE_ID).as(String.class), NUMBER_OF_LEVELS, nLvl);
 			}
 		}*/
-		
+
+		model.mapCytoscapeIDtoReactantID = nodeNameToId;
 		
 		return model;
 	}

@@ -12,6 +12,7 @@ import java.awt.Color;
 import java.awt.event.ActionEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -49,6 +50,7 @@ import cytoscape.visual.mappings.ContinuousMapping;
 import cytoscape.visual.mappings.DiscreteMapping;
 import cytoscape.visual.mappings.LinearNumberToColorInterpolator;
 import cytoscape.visual.mappings.LinearNumberToNumberInterpolator;
+import cytoscape.visual.mappings.ObjectMapping;
 import cytoscape.visual.mappings.PassThroughMapping;
 import ding.view.EdgeContextMenuListener;
 import ding.view.NodeContextMenuListener;
@@ -341,16 +343,57 @@ public class INATPropertyChangeListener implements PropertyChangeListener {
 		}
 		
 		final DiscreteMapping shapesMap;
+		boolean redoShapeMappings = false;
 		
 		if (nac.getCalculator(VisualPropertyType.NODE_SHAPE) == null) {
+			redoShapeMappings = true;
+		} else { //Check if there are missing mappings, and add only those that are not already there (we let the users define their own mappings and don't overwrite them)
+			for (ObjectMapping m : nac.getCalculator(VisualPropertyType.NODE_SHAPE).getMappings()) {
+				if (m instanceof DiscreteMapping && ((DiscreteMapping)m).getRangeClass().equals(NodeShape.class) && ((DiscreteMapping)m).getControllingAttributeName().equals(Model.Properties.MOLECULE_TYPE)) {
+					DiscreteMapping dm = (DiscreteMapping)m;
+					if (dm.getMapValue(Model.Properties.TYPE_CYTOKINE) == null) {
+						dm.putMapValue(Model.Properties.TYPE_CYTOKINE, NodeShape.RECT);
+					}
+					if (dm.getMapValue(Model.Properties.TYPE_RECEPTOR) == null) {
+						dm.putMapValue(Model.Properties.TYPE_RECEPTOR, NodeShape.ELLIPSE);
+					}
+					if (dm.getMapValue(Model.Properties.TYPE_KINASE) == null) {
+						dm.putMapValue(Model.Properties.TYPE_KINASE, NodeShape.ELLIPSE);
+					}
+					if (dm.getMapValue(Model.Properties.TYPE_PHOSPHATASE) == null) {
+						dm.putMapValue(Model.Properties.TYPE_PHOSPHATASE, NodeShape.DIAMOND);
+					}
+					if (dm.getMapValue(Model.Properties.TYPE_TRANSCRIPTION_FACTOR) == null) {
+						dm.putMapValue(Model.Properties.TYPE_TRANSCRIPTION_FACTOR, NodeShape.ELLIPSE);
+					}
+					if (dm.getMapValue(Model.Properties.TYPE_GENE) == null) {
+						dm.putMapValue(Model.Properties.TYPE_GENE, NodeShape.TRIANGLE);
+					}
+					if (dm.getMapValue(Model.Properties.TYPE_MRNA) == null) {
+						dm.putMapValue(Model.Properties.TYPE_MRNA, NodeShape.PARALLELOGRAM);
+					}
+					if (dm.getMapValue(Model.Properties.TYPE_DUMMY) == null) {
+						dm.putMapValue(Model.Properties.TYPE_DUMMY, NodeShape.ROUND_RECT);
+					}
+					if (dm.getMapValue(Model.Properties.TYPE_OTHER) == null) {
+						dm.putMapValue(Model.Properties.TYPE_OTHER, NodeShape.RECT);
+					}
+					break;
+				}
+			}
+		}
+		
+		if (redoShapeMappings) {
 			mapping = new DiscreteMapping(NodeShape.class, Model.Properties.MOLECULE_TYPE);
 			mapping.putMapValue(Model.Properties.TYPE_CYTOKINE, NodeShape.RECT);
 			mapping.putMapValue(Model.Properties.TYPE_RECEPTOR, NodeShape.ELLIPSE);
 			mapping.putMapValue(Model.Properties.TYPE_KINASE, NodeShape.ELLIPSE);
 			mapping.putMapValue(Model.Properties.TYPE_PHOSPHATASE, NodeShape.DIAMOND);
 			mapping.putMapValue(Model.Properties.TYPE_TRANSCRIPTION_FACTOR, NodeShape.ELLIPSE);
+			mapping.putMapValue(Model.Properties.TYPE_GENE, NodeShape.TRIANGLE);
+			mapping.putMapValue(Model.Properties.TYPE_MRNA, NodeShape.PARALLELOGRAM);
+			mapping.putMapValue(Model.Properties.TYPE_DUMMY, NodeShape.ROUND_RECT);
 			mapping.putMapValue(Model.Properties.TYPE_OTHER, NodeShape.RECT);
-			//I purposedly omit TYPE_OTHER, because I want it to stay on the default setting
 			calco = new BasicCalculator(myVisualStyleName + "Mapping_node_shape_from_molecule_type", mapping, VisualPropertyType.NODE_SHAPE);
 			nac.setCalculator(calco);
 			shapesMap = mapping;
@@ -358,23 +401,57 @@ public class INATPropertyChangeListener implements PropertyChangeListener {
 			shapesMap = null;
 		}
 		
-		/*mapping = new DiscreteMapping(Float.class, Model.Properties.MOLECULE_TYPE);
-		mapping.putMapValue(Model.Properties.TYPE_CYTOKINE, 60.0f);
-		mapping.putMapValue(Model.Properties.TYPE_RECEPTOR, 50.0f);
-		mapping.putMapValue(Model.Properties.TYPE_KINASE, 55.0f);
-		mapping.putMapValue(Model.Properties.TYPE_PHOSPHATASE, 55.0f);
-		mapping.putMapValue(Model.Properties.TYPE_TRANSCRIPTION_FACTOR, 50.0f);
-		calco = new BasicCalculator("Mapping node shape size from molecule type", mapping, VisualPropertyType.NODE_SIZE);
-		nac.setCalculator(calco);*/
 		final DiscreteMapping widthsMap;
+		boolean redoWidthMappings = false;
 		
 		if (nac.getCalculator(VisualPropertyType.NODE_WIDTH) == null) {
+			redoWidthMappings = true;
+		} else {
+			for (ObjectMapping m : nac.getCalculator(VisualPropertyType.NODE_WIDTH).getMappings()) {
+				if (m instanceof DiscreteMapping && ((DiscreteMapping)m).getRangeClass().equals(Float.class) && ((DiscreteMapping)m).getControllingAttributeName().equals(Model.Properties.MOLECULE_TYPE)) {
+					DiscreteMapping dm = (DiscreteMapping)m;
+					if (dm.getMapValue(Model.Properties.TYPE_CYTOKINE) == null) {
+						dm.putMapValue(Model.Properties.TYPE_CYTOKINE, 50.0f);
+					}
+					if (dm.getMapValue(Model.Properties.TYPE_RECEPTOR) == null) {
+						dm.putMapValue(Model.Properties.TYPE_RECEPTOR, 45.0f);
+					}
+					if (dm.getMapValue(Model.Properties.TYPE_KINASE) == null) {
+						dm.putMapValue(Model.Properties.TYPE_KINASE, 55.0f);
+					}
+					if (dm.getMapValue(Model.Properties.TYPE_PHOSPHATASE) == null) {
+						dm.putMapValue(Model.Properties.TYPE_PHOSPHATASE, 55.0f);
+					}
+					if (dm.getMapValue(Model.Properties.TYPE_TRANSCRIPTION_FACTOR) == null) {
+						dm.putMapValue(Model.Properties.TYPE_TRANSCRIPTION_FACTOR, 60.0f);
+					}
+					if (dm.getMapValue(Model.Properties.TYPE_GENE) == null) {
+						dm.putMapValue(Model.Properties.TYPE_GENE, 50.0f);
+					}
+					if (dm.getMapValue(Model.Properties.TYPE_MRNA) == null) {
+						dm.putMapValue(Model.Properties.TYPE_MRNA, 50.0f);
+					}
+					if (dm.getMapValue(Model.Properties.TYPE_DUMMY) == null) {
+						dm.putMapValue(Model.Properties.TYPE_DUMMY, 60.0f);
+					}
+					if (dm.getMapValue(Model.Properties.TYPE_OTHER) == null) {
+						dm.putMapValue(Model.Properties.TYPE_OTHER, 60.0f);
+					}
+					break;
+				}
+			}
+		}
+		
+		if (redoWidthMappings) {
 			mapping = new DiscreteMapping(Float.class, Model.Properties.MOLECULE_TYPE);
 			mapping.putMapValue(Model.Properties.TYPE_CYTOKINE, 50.0f);
 			mapping.putMapValue(Model.Properties.TYPE_RECEPTOR, 45.0f);
 			mapping.putMapValue(Model.Properties.TYPE_KINASE, 55.0f);
 			mapping.putMapValue(Model.Properties.TYPE_PHOSPHATASE, 55.0f);
 			mapping.putMapValue(Model.Properties.TYPE_TRANSCRIPTION_FACTOR, 60.0f);
+			mapping.putMapValue(Model.Properties.TYPE_GENE, 50.0f);
+			mapping.putMapValue(Model.Properties.TYPE_MRNA, 50.0f);
+			mapping.putMapValue(Model.Properties.TYPE_DUMMY, 60.0f);
 			mapping.putMapValue(Model.Properties.TYPE_OTHER, 60.0f);
 			calco = new BasicCalculator(myVisualStyleName + "Mapping_node_shape_width_from_molecule_type", mapping, VisualPropertyType.NODE_WIDTH);
 			nac.setCalculator(calco);
@@ -384,14 +461,56 @@ public class INATPropertyChangeListener implements PropertyChangeListener {
 		}
 		
 		final DiscreteMapping heightsMap;
+		boolean redoHeightMappings = false;
 		
 		if (nac.getCalculator(VisualPropertyType.NODE_HEIGHT) == null) {
+			redoHeightMappings = true;
+		} else {
+			for (ObjectMapping m : nac.getCalculator(VisualPropertyType.NODE_HEIGHT).getMappings()) {
+				if (m instanceof DiscreteMapping && ((DiscreteMapping)m).getRangeClass().equals(Float.class) && ((DiscreteMapping)m).getControllingAttributeName().equals(Model.Properties.MOLECULE_TYPE)) {
+					DiscreteMapping dm = (DiscreteMapping)m;
+					if (dm.getMapValue(Model.Properties.TYPE_CYTOKINE) == null) {
+						dm.putMapValue(Model.Properties.TYPE_CYTOKINE, 50.0f);
+					}
+					if (dm.getMapValue(Model.Properties.TYPE_RECEPTOR) == null) {
+						dm.putMapValue(Model.Properties.TYPE_RECEPTOR, 65.0f);
+					}
+					if (dm.getMapValue(Model.Properties.TYPE_KINASE) == null) {
+						dm.putMapValue(Model.Properties.TYPE_KINASE, 55.0f);
+					}
+					if (dm.getMapValue(Model.Properties.TYPE_PHOSPHATASE) == null) {
+						dm.putMapValue(Model.Properties.TYPE_PHOSPHATASE, 55.0f);
+					}
+					if (dm.getMapValue(Model.Properties.TYPE_TRANSCRIPTION_FACTOR) == null) {
+						dm.putMapValue(Model.Properties.TYPE_TRANSCRIPTION_FACTOR, 40.0f);
+					}
+					if (dm.getMapValue(Model.Properties.TYPE_GENE) == null) {
+						dm.putMapValue(Model.Properties.TYPE_GENE, 50.0f);
+					}
+					if (dm.getMapValue(Model.Properties.TYPE_MRNA) == null) {
+						dm.putMapValue(Model.Properties.TYPE_MRNA, 50.0f);
+					}
+					if (dm.getMapValue(Model.Properties.TYPE_DUMMY) == null) {
+						dm.putMapValue(Model.Properties.TYPE_DUMMY, 40.0f);
+					}
+					if (dm.getMapValue(Model.Properties.TYPE_OTHER) == null) {
+						dm.putMapValue(Model.Properties.TYPE_OTHER, 35.0f);
+					}
+					break;
+				}
+			}
+		}
+		
+		if (redoHeightMappings) {
 			mapping = new DiscreteMapping(Float.class, Model.Properties.MOLECULE_TYPE);
 			mapping.putMapValue(Model.Properties.TYPE_CYTOKINE, 50.0f);
 			mapping.putMapValue(Model.Properties.TYPE_RECEPTOR, 65.0f);
 			mapping.putMapValue(Model.Properties.TYPE_KINASE, 55.0f);
 			mapping.putMapValue(Model.Properties.TYPE_PHOSPHATASE, 55.0f);
 			mapping.putMapValue(Model.Properties.TYPE_TRANSCRIPTION_FACTOR, 40.0f);
+			mapping.putMapValue(Model.Properties.TYPE_GENE, 50.0f);
+			mapping.putMapValue(Model.Properties.TYPE_MRNA, 50.0f);
+			mapping.putMapValue(Model.Properties.TYPE_DUMMY, 40.0f);
 			mapping.putMapValue(Model.Properties.TYPE_OTHER, 35.0f);
 			calco = new BasicCalculator(myVisualStyleName + "Mapping_node_shape_height_from_molecule_type", mapping, VisualPropertyType.NODE_HEIGHT);
 			nac.setCalculator(calco);
@@ -457,6 +576,11 @@ public class INATPropertyChangeListener implements PropertyChangeListener {
 			legendColors.updateFromSettings();
 		}
 		
+		List<String> orderedNames = Arrays.asList(new String[]{Model.Properties.TYPE_CYTOKINE, Model.Properties.TYPE_RECEPTOR, Model.Properties.TYPE_KINASE,
+				   Model.Properties.TYPE_PHOSPHATASE, Model.Properties.TYPE_TRANSCRIPTION_FACTOR, Model.Properties.TYPE_GENE,
+				   Model.Properties.TYPE_MRNA, Model.Properties.TYPE_DUMMY, Model.Properties.TYPE_OTHER});
+		legendShapes.setNameOrder(orderedNames);
+		
 		if (shapesMap != null && widthsMap != null && heightsMap != null) {
 			legendShapes.setParameters(shapesMap, widthsMap, heightsMap);
 		} else {
@@ -478,7 +602,7 @@ public class INATPropertyChangeListener implements PropertyChangeListener {
 		
 		//Recompute the activityRatio property for all nodes, to make sure that it exists
 		CyNetwork network = Cytoscape.getCurrentNetwork();
-		if (network != null) {
+		if (network != null && !network.equals(Cytoscape.getNullNetwork())) {
 			CyAttributes nodeAttr = Cytoscape.getNodeAttributes(),
 						 networkAttr = Cytoscape.getNetworkAttributes();
 			for (int i : network.getNodeIndicesArray()) {
